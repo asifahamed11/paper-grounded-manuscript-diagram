@@ -46,7 +46,7 @@ def main() -> int:
     try:
         document = fitz.open(args.pdf)
         total_pages = len(document)
-        end_page = args.end_page or total_pages
+        end_page = total_pages if args.end_page is None else args.end_page
         if end_page < args.start_page or end_page > total_pages:
             parser.error(f"Page range must be within 1..{total_pages}")
 
@@ -76,6 +76,9 @@ def main() -> int:
     except Exception as exc:
         print(f"Could not process PDF: {exc}", file=sys.stderr)
         return 1
+    finally:
+        if 'document' in locals():
+            document.close()
 
     print(f"Rendered {render_count} page(s) and extracted {image_count} embedded image(s).")
     print(f"Output directory: {args.output_dir.resolve()}")

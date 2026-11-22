@@ -2,3 +2,4 @@
 # The core SKILL.md does not require Python packages.
 PyMuPDF>=1.24
 Pillow>=10.0
+matplotlib>=3.8,<4

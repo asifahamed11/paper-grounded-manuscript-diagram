@@ -1,0 +1,6 @@
+interface:
+  display_name: "Paper Grounded Manuscript Diagram"
+  short_description: "Draw editable research diagrams with measured layout QA"
+  default_prompt: "Use $paper-grounded-manuscript-diagram to create an editable diagram from my supplied method, preserving its scientific relationships and inspecting the final render."
+policy:
+  allow_implicit_invocation: true

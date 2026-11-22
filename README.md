@@ -1,8 +1,8 @@
 # Paper-Grounded Manuscript Diagram
 
-A portable Agent Skill for creating original, scientifically accurate, publication-ready research diagrams grounded in the user's manuscript and relevant academic literature.
+A portable Agent Skill for creating editable research diagrams from the user's method, manuscript or existing figure, with optional paper-figure review and a local drawing engine.
 
-It helps an AI agent research the topic, find and inspect relevant papers, analyze published figure conventions, plan a new figure, create editable diagram source, and perform scientific and visual quality checks.
+It helps an agent choose a composition, draw it with measured typography and geometry, inspect the actual export and preserve the underlying research. It does not infer missing methodology or certify journal acceptance.
 
 ## Agent Skills format
 
@@ -12,13 +12,13 @@ This package follows the open [Agent Skills specification](https://agentskills.i
 
 - Understands the user's research, code, experiments, and manuscript context.
 - Searches for recent and influential papers relevant to the topic and requested figure type.
-- Makes a best-effort attempt to download and inspect **at least five legally accessible full-text papers**.
+- Uses relevant paper figures when they answer a design question. A simple redesign does not require a fresh paper search; an explicit user-requested reference count is respected.
 - Analyzes relevant paper figures for structure, hierarchy, layout, typography, color, spacing, labels, and scientific conventions.
 - Synthesizes an original diagram instead of copying a published figure.
 - Uses the Okabe-Ito palette and rounded process shapes by default.
 - Applies the correct conventions for flowcharts, methodology diagrams, conceptual frameworks, architectures, graphical abstracts, and study-area maps.
 - Checks scientific accuracy, readability, alignment, exports, and remaining limitations.
-- Provides the final figure, editable source, reference list, and QA summary when the host agent has the necessary tools.
+- Includes a Python/Matplotlib renderer, illustrative parallel and linear layout specifications, editable SVG, vector PDF, 600-DPI PNG, and measured geometry reports.
 
 ## Important portability note
 
@@ -43,19 +43,24 @@ paper-grounded-manuscript-diagram/
 │   ├── design-system.md
 │   ├── quality-assurance.md
 │   ├── platform-compatibility.md
+│   ├── rendering.md
 │   └── output-specification.md
 ├── scripts/
 │   ├── score_papers.py
 │   ├── extract_pdf_figures.py
 │   ├── build_contact_sheet.py
+│   ├── render_diagram.py
 │   └── validate_svg.py
 ├── templates/
 │   ├── paper-matrix.csv
 │   ├── figure-analysis.md
 │   ├── diagram-spec.yaml
+│   ├── linear-workflow.json
+│   ├── parallel-study.json
 │   └── methodology-flow.mmd
 ├── tests/
-│   └── test_helpers.py
+│   ├── test_helpers.py
+│   └── test_renderer.py
 └── .github/
     └── workflows/
         └── validate.yml
@@ -68,13 +73,27 @@ paper-grounded-manuscript-diagram/
 3. Make sure the agent can read `SKILL.md` and the files under `references/`.
 4. Give the agent a request such as:
 
-   > Read my research manuscript, code, and experiment notes. Create a publication-ready methodology diagram. Follow the Paper-Grounded Manuscript Diagram skill. Search for and inspect at least five legally accessible relevant full-text papers where available, analyze their related figures, and create an original diagram. Deliver SVG, PDF, PNG, editable source, references, and a QA report.
+   > Use $paper-grounded-manuscript-diagram to draw my supplied method. Preserve every supported stage and relationship. Choose a layout that fits the research, use Okabe-Ito colours and rounded process shapes, and deliver editable SVG, vector PDF, a 600-DPI PNG and source. Inspect the full preview and actual print-size output. Review comparable paper figures only where they add useful design evidence.
 
 5. If the platform does not auto-discover skills, explicitly ask the agent to read this folder's `SKILL.md`.
 
 ## Optional helper scripts
 
 The helper scripts are offline utilities. They do not call academic APIs or download papers automatically.
+
+### Draw a workflow locally
+
+Use an existing Python environment with Matplotlib and Pillow. Adapt a template's labels, routes and size from the verified method; the example contents are illustrative, not a study protocol:
+
+```bash
+python scripts/render_diagram.py templates/parallel-study.json --check-only
+python scripts/render_diagram.py templates/parallel-study.json --output-dir diagram-output --stem methodology
+python scripts/validate_svg.py diagram-output/methodology.svg --json diagram-output/svg-check.json
+```
+
+Read [the drawing contract](references/rendering.md). Coordinates use points at the actual manuscript size. The renderer measures label overflow, node overlap, contrast, arrow endpoints and paths through unrelated content, returning a nonzero exit code on failure. Open `methodology-preview.png` and `methodology-print-size.png` yourself: automated geometry does not establish scientific accuracy or visual polish. On failure, do not mistake older files in a reused output directory for a new successful export.
+
+SVG retains text for a vector editor and includes a local sans-serif fallback stack; PDF embeds local fonts where supported. The additional `-outlined.svg` keeps label appearance stable for Word embedding, but its letters are not editable text. Neither is a native Word, PowerPoint or draw.io diagram. No remote fonts, hosted image generator or paid API is needed. Use other local authoring tools for unsupported diagram types.
 
 ### 1. Rank a paper candidate list
 
@@ -99,7 +118,7 @@ Citation counts should come from a named scholarly source and be recorded with a
 
 ### 2. Extract images and render PDF pages
 
-Install the optional PDF dependency:
+If the relevant packages are missing and installation is authorised, install the optional dependencies in a project environment (not globally):
 
 ```bash
 python -m pip install -r requirements-optional.txt
@@ -127,7 +146,7 @@ Requires Pillow. Review the contact sheet and open individual images at full res
 python scripts/validate_svg.py final-figure.svg
 ```
 
-This checks basic XML/SVG structure, dimensions, viewBox, and text presence. It cannot determine scientific correctness, visual balance, or whether labels are clipped.
+This checks positive physical dimensions/viewBox, editable-text presence, and rejects active content and nonlocal resource references. It cannot determine scientific correctness, visual balance, or whether labels are clipped. Use the renderer's geometry report plus visual review for those concerns.
 
 ## Run tests
 
@@ -135,13 +154,16 @@ This checks basic XML/SVG structure, dimensions, viewBox, and text presence. It 
 python -m unittest discover -s tests -v
 ```
 
+Without optional dependencies, renderer/PDF/image tests explicitly skip. The CI rendering job installs its pinned test dependencies and exercises real exports; a standard-library-only test run is not equivalent to a rendering pass.
+
 ## Research integrity and legal access
 
 - Do not fabricate references, DOIs, citation counts, or download status.
 - Do not bypass paywalls or access controls.
 - Prefer legally available full texts and record the source URL.
 - Never copy or trace a published figure. Create a new visual composition based on verified research content and general design conventions.
-- If five full-text papers cannot be accessed, state the exact number actually inspected and why.
+- State the actual reference set inspected and its page/figure locators. Never count a search snippet as full-text or figure review.
+- Keep private manuscripts and extracted research content local. External scholarly queries should use public topic/DOI terms.
 
 ## Default visual style
 

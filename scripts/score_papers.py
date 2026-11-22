@@ -17,7 +17,8 @@ def to_float(value: Any, default: float = 0.0) -> float:
     try:
         if value is None or str(value).strip() == "":
             return default
-        return float(value)
+        result = float(value)
+        return result if math.isfinite(result) else default
     except (TypeError, ValueError):
         return default
 
@@ -38,8 +39,9 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
         year = int(to_float(record.get("year"), 0))
 
         citation_score = (math.log1p(citations) / log_denominator * 100.0) if max_citations > 0 else 0.0
-        age = max(0, current_year - year) if year > 0 else 100
-        recency_score = 100.0 * (0.5 ** (age / 5.0)) if year > 0 else 0.0
+        known_year = 0 < year <= current_year
+        age = current_year - year if known_year else 100
+        recency_score = 100.0 * (0.5 ** (age / 5.0)) if known_year else 0.0
 
         total = (
             0.40 * relevance
@@ -49,6 +51,7 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
         )
 
         item = dict(record)
+        item["score_warnings"] = "future or unknown year" if not known_year else ""
         item["citation_score"] = round(citation_score, 2)
         item["recency_score"] = round(recency_score, 2)
         item["weighted_score"] = round(total, 2)
@@ -64,6 +67,8 @@ def load_records(path: Path) -> list[dict[str, Any]]:
             data = data.get("papers", [])
         if not isinstance(data, list):
             raise ValueError("JSON input must be a list or an object with a 'papers' list.")
+        if not all(isinstance(x,dict) for x in data):
+            raise ValueError("Every paper record must be an object.")
         return [dict(x) for x in data]
 
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -73,9 +78,10 @@ def load_records(path: Path) -> list[dict[str, Any]]:
 def write_csv(records: list[dict[str, Any]], path: Path) -> None:
     if not records:
         raise ValueError("No paper records found.")
-    fields = list(records[0].keys())
+    fields = list(dict.fromkeys(key for record in records for key in record))
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         writer.writerows(records)
 

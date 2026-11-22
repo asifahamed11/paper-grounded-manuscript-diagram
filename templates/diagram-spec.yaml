@@ -22,11 +22,12 @@ design:
   shape_style: "rounded process shapes; semantic shapes where required"
   background: "white"
   font_family: "readable sans-serif"
-  reading_direction: "left-to-right"
+  reading_direction: "choose from the method; do not assume a linear chain"
   legend_required: false
   map_elements: []
 literature:
-  target_full_text_papers: 5
+  mode: "supplied-method" # existing-figure | supplied-method | literature-grounded
+  target_full_text_papers: null # use an explicit user requirement, otherwise select for usefulness
   papers_downloaded_and_inspected: 0
   paper_records: []
 quality:

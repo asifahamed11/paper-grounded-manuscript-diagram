@@ -1,0 +1,404 @@
+{
+  "title": "Illustrative parallel research workflow",
+  "description": "Demonstration only: retrospective model evaluation and prospective follow-up meet at interpretation. Dashed arrows show interpretation context, not historical model inputs.",
+  "canvas": {
+    "width_pt": 464.4,
+    "height_pt": 378,
+    "font_family": "DejaVu Sans",
+    "font_pt": 9,
+    "min_font_pt": 8.5
+  },
+  "nodes": [
+    {
+      "id": "lane-a",
+      "shape": "header",
+      "box": [
+        8,
+        8,
+        242,
+        24
+      ],
+      "label": "A  Retrospective modelling",
+      "fill": "blue",
+      "text_color": "white",
+      "font_pt": 10,
+      "bold": true
+    },
+    {
+      "id": "lane-b",
+      "shape": "header",
+      "box": [
+        276,
+        8,
+        180,
+        24
+      ],
+      "label": "B  Prospective follow-up",
+      "fill": "orange",
+      "font_pt": 10,
+      "bold": true
+    },
+    {
+      "id": "records",
+      "shape": "data",
+      "box": [
+        8,
+        44,
+        115,
+        50
+      ],
+      "label": "Observed records",
+      "fill": "sky_blue",
+      "detail": "Source dates and definitions"
+    },
+    {
+      "id": "predictors",
+      "shape": "data",
+      "box": [
+        135,
+        44,
+        115,
+        50
+      ],
+      "label": "Predictor histories",
+      "fill": "sky_blue",
+      "detail": "Matched place and time"
+    },
+    {
+      "id": "audit",
+      "box": [
+        8,
+        110,
+        242,
+        42
+      ],
+      "label": "Qualify and align records",
+      "detail": "Check dates and non-reporting"
+    },
+    {
+      "id": "training",
+      "shape": "group",
+      "box": [
+        8,
+        168,
+        242,
+        68
+      ],
+      "label": "Past-only fitting and tuning",
+      "font_pt": 9.5,
+      "bold": true,
+      "label_height_pt": 24
+    },
+    {
+      "id": "reference",
+      "box": [
+        17,
+        198,
+        107,
+        28
+      ],
+      "label": "Reference model"
+    },
+    {
+      "id": "candidate",
+      "box": [
+        135,
+        198,
+        107,
+        28
+      ],
+      "label": "Candidate model"
+    },
+    {
+      "id": "evaluate",
+      "box": [
+        8,
+        254,
+        242,
+        40
+      ],
+      "label": "Held-out temporal evaluation",
+      "detail": "Same dates and scoring rules"
+    },
+    {
+      "id": "recruit",
+      "box": [
+        276,
+        44,
+        180,
+        58
+      ],
+      "label": "Ethics and recruitment",
+      "detail": "Consent and eligibility"
+    },
+    {
+      "id": "baseline",
+      "box": [
+        276,
+        120,
+        82,
+        44
+      ],
+      "label": "Baseline",
+      "detail": "First assessment"
+    },
+    {
+      "id": "followup",
+      "box": [
+        374,
+        120,
+        82,
+        44
+      ],
+      "label": "Follow-up",
+      "detail": "Repeat assessment"
+    },
+    {
+      "id": "change",
+      "box": [
+        276,
+        184,
+        180,
+        44
+      ],
+      "label": "Within-participant change",
+      "detail": "Record attrition and missingness"
+    },
+    {
+      "id": "context",
+      "shape": "input",
+      "box": [
+        276,
+        250,
+        180,
+        42
+      ],
+      "label": "Separate context interviews",
+      "fill": "purple",
+      "detail": "Implementation requirements"
+    },
+    {
+      "id": "interpret",
+      "shape": "terminator",
+      "box": [
+        8,
+        312,
+        448,
+        32
+      ],
+      "label": "Joint interpretation and research outputs",
+      "fill": "green",
+      "bold": true,
+      "font_pt": 10
+    }
+  ],
+  "edges": [
+    {
+      "from": "records",
+      "to": "audit",
+      "points": [
+        [
+          65.5,
+          94
+        ],
+        [
+          65.5,
+          110
+        ]
+      ]
+    },
+    {
+      "from": "predictors",
+      "to": "audit",
+      "points": [
+        [
+          192.5,
+          94
+        ],
+        [
+          192.5,
+          110
+        ]
+      ]
+    },
+    {
+      "from": "audit",
+      "to": "training",
+      "points": [
+        [
+          129,
+          152
+        ],
+        [
+          129,
+          168
+        ]
+      ]
+    },
+    {
+      "from": "reference",
+      "to": "evaluate",
+      "points": [
+        [
+          70.5,
+          226
+        ],
+        [
+          70.5,
+          244
+        ],
+        [
+          112,
+          244
+        ],
+        [
+          112,
+          254
+        ]
+      ]
+    },
+    {
+      "from": "candidate",
+      "to": "evaluate",
+      "points": [
+        [
+          188.5,
+          226
+        ],
+        [
+          188.5,
+          244
+        ],
+        [
+          146,
+          244
+        ],
+        [
+          146,
+          254
+        ]
+      ]
+    },
+    {
+      "from": "recruit",
+      "to": "baseline",
+      "points": [
+        [
+          317,
+          102
+        ],
+        [
+          317,
+          120
+        ]
+      ]
+    },
+    {
+      "from": "baseline",
+      "to": "followup",
+      "points": [
+        [
+          358,
+          142
+        ],
+        [
+          374,
+          142
+        ]
+      ]
+    },
+    {
+      "from": "followup",
+      "to": "change",
+      "points": [
+        [
+          415,
+          164
+        ],
+        [
+          415,
+          174
+        ],
+        [
+          366,
+          174
+        ],
+        [
+          366,
+          184
+        ]
+      ]
+    },
+    {
+      "from": "evaluate",
+      "to": "interpret",
+      "points": [
+        [
+          129,
+          294
+        ],
+        [
+          129,
+          312
+        ]
+      ]
+    },
+    {
+      "from": "change",
+      "to": "interpret",
+      "points": [
+        [
+          276,
+          206
+        ],
+        [
+          264,
+          206
+        ],
+        [
+          264,
+          302
+        ],
+        [
+          330,
+          302
+        ],
+        [
+          330,
+          312
+        ]
+      ],
+      "style": "dashed",
+      "meaning": "Context for interpretation only"
+    },
+    {
+      "from": "context",
+      "to": "interpret",
+      "points": [
+        [
+          366,
+          292
+        ],
+        [
+          366,
+          312
+        ]
+      ],
+      "style": "dashed",
+      "meaning": "Context for interpretation only"
+    }
+  ],
+  "annotations": [
+    {
+      "box": [
+        8,
+        350,
+        448,
+        23
+      ],
+      "label": "Dashed links: context for interpretation only; excluded from historical fitting.",
+      "font_pt": 8.5,
+      "padding_pt": 2
+    }
+  ]
+}

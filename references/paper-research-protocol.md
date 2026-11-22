@@ -20,14 +20,14 @@ Do not scrape services in ways that violate their terms. Do not treat ordinary w
 
 ## 2. Candidate selection
 
-Aim for 8–15 candidates before selecting the analysis set when the literature allows. Include:
+For a deep research request, a larger candidate set can help. For a focused drawing task, stop once the specific design questions are answered. Include as relevant:
 
 - recent, directly relevant work;
 - highly influential work when it defines a method or convention;
 - papers with figures close to the requested figure type;
 - reliable primary research or authoritative reviews.
 
-Avoid selecting five papers that all repeat the same narrow perspective. Prefer methodological and visual diversity where it helps the user.
+Prefer methodological and visual diversity over meeting an arbitrary count. Existing locally reviewed references can be reused.
 
 ### Recommended scoring
 
@@ -49,9 +49,9 @@ Default weights:
 
 Citation influence is log-normalized within the candidate set to reduce domination by a single extremely cited paper. Recency uses a five-year half-life. This is a ranking aid, not an objective measure of scientific quality. Adjust weights if the field or task requires it.
 
-## 3. Minimum five full-text papers
+## 3. Access and inspection scope
 
-Download and inspect at least five relevant full-text papers. This is a required quality gate before presenting the figure as final and paper-grounded. Prefer more if additional papers add useful evidence.
+For new literature-grounded design, start with 2–4 directly useful figures and expand only when they add a needed convention. A styling correction to an existing verified diagram does not require a fresh literature search. If the user specifically requests five full texts, honour that request and disclose any shortfall; it is not a universal gate for unrelated diagram tasks.
 
 A paper counts as **downloaded and inspected** only if:
 - a full-text PDF or equivalent full text was actually obtained;
@@ -65,13 +65,15 @@ The following do not count as downloaded full text:
 - a figure thumbnail without the paper context;
 - a DOI landing page.
 
-If fewer than five can be legally accessed:
+If the desired reference set cannot be legally accessed:
 1. try alternate legitimate sources (publisher open-access page, author manuscript, institutional repository, PMC, arXiv, ACL Anthology, or another recognized repository);
 2. record which papers were inaccessible and why;
 3. report the actual number downloaded and inspected;
 4. do not bypass paywalls or access controls;
-5. pause finalization and ask the user to provide more PDFs or explicitly approve proceeding with fewer;
-6. never claim the minimum was met if it was not.
+5. continue a useful diagram from the user's verified method with the evidence limitations stated; ask for a missing source only when it materially affects scientific content or an explicit requirement;
+6. never claim a requested paper count or inspection stage was met if it was not.
+
+Do not send private manuscript text, unpublished diagrams or research data to external search/generation services. Public subject/DOI queries and lawful public-paper downloads are sufficient for style research. Link every adopted convention to an actual inspected page/figure and a concrete new-design choice; a bibliography alone is not a design analysis.
 
 ## 4. Legal access and rights
 

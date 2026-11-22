@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -22,3 +25,21 @@ jobs:
           python scripts/extract_pdf_figures.py --help
           python scripts/build_contact_sheet.py --help
           python scripts/validate_svg.py --help
+          python scripts/render_diagram.py --help
+          python scripts/render_diagram.py templates/parallel-study.json --check-only
+
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned rendering test dependencies
+        run: python -m pip install matplotlib==3.10.7 Pillow==11.3.0 PyMuPDF==1.26.6
+      - name: Exercise actual exports and failure cases
+        run: python -m unittest discover -s tests -v
+      - name: Render the parallel example
+        run: |
+          python scripts/render_diagram.py templates/parallel-study.json --output-dir diagram-output --stem methodology
+          python scripts/validate_svg.py diagram-output/methodology.svg

@@ -18,13 +18,14 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("contact-sheet.png"))
     parser.add_argument("--columns", type=int, default=3)
     parser.add_argument("--thumb-width", type=int, default=420)
+    parser.add_argument("--thumb-height", type=int, default=560)
     parser.add_argument("--label-height", type=int, default=42)
     args = parser.parse_args()
 
     if not args.image_dir.is_dir():
         parser.error(f"Directory not found: {args.image_dir}")
-    if args.columns < 1 or args.thumb_width < 100:
-        parser.error("Columns must be >= 1 and thumbnail width must be >= 100")
+    if args.columns < 1 or min(args.thumb_width,args.thumb_height) < 100 or args.label_height < 24:
+        parser.error("Columns must be >= 1, thumbnail dimensions >= 100, label height >= 24")
 
     try:
         from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -32,7 +33,7 @@ def main() -> int:
         print("Missing dependency. Install with: python -m pip install Pillow", file=sys.stderr)
         return 2
 
-    paths = sorted(p for p in args.image_dir.iterdir() if p.suffix.lower() in SUPPORTED)
+    paths = sorted(p for p in args.image_dir.iterdir() if p.suffix.lower() in SUPPORTED and p.resolve()!=args.output.resolve())
     if not paths:
         print(f"No supported images found in {args.image_dir}", file=sys.stderr)
         return 1
@@ -42,8 +43,7 @@ def main() -> int:
         try:
             with Image.open(path) as source:
                 image = ImageOps.exif_transpose(source).convert("RGB")
-                height = max(1, int(image.height * args.thumb_width / image.width))
-                thumb = image.resize((args.thumb_width, height))
+                thumb = ImageOps.contain(image,(args.thumb_width,args.thumb_height),method=Image.Resampling.LANCZOS)
                 cards.append((path.name, thumb.copy()))
         except Exception as exc:
             print(f"Skipping {path.name}: {exc}", file=sys.stderr)

@@ -8,3 +8,5 @@ Thumbs.db
 extracted_figures/
 contact-sheet.png
 ranked-papers.csv
+diagram-output/
+.qa/
