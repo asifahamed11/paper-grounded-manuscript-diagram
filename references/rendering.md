@@ -52,6 +52,14 @@ Give every edge named source/target nodes and an explicit route with at least tw
 
 For `style: "dashed"`, include `meaning`, and explain that meaning in a visible note or caption. The string is audit metadata, not an automatically drawn legend. Put footer/legend text in `annotations`, with its own `box`, `label`, optional font size and padding. These bounds and collisions are measured too.
 
+## Optional local icons
+
+Read [the icon workflow](icon-workflow.md) before choosing/generating assets. The renderer does not generate or remove backgrounds. Optional top-level `icons` records have `id`, `path`, `box`, `alt`, and optionally `node`. IDs use letters/digits/hyphens/underscores. Paths are relative local PNGs under the specification directory; URLs, absolute paths, parent traversal and symlink escapes are rejected. The asset must be a single-frame PNG with actual transparency and clear corners, at most 16 megapixels. Native DPI must be at least 300 at the fitted physical placement. Scaling preserves aspect ratio and centres the asset in its assigned box.
+
+For an icon inside a node, name that node and reserve a left strip using `icon_space_pt`; its text is wrapped/measured in the remaining area. The assigned icon box must fit inside that strip with at least two points of margin, and its fitted rectangle must fit the actual semantic silhouette. Icons without an owner are standalone; route/place other content around them. Image-image, image-label, unrelated-node and image-connector overlaps fail geometry checks. Raster contrast and optical alignment still require visual review, including against a coloured node.
+
+The CLI resolves assets relative to the input JSON. Python callers pass `asset_dir=spec_path.parent` to `render(...)`. Successful source export copies prepared icons into `<stem>-assets/` and rewrites `<stem>-source.json` to refer to those copies, so the complete output folder is reproducible elsewhere. SVGs embed PNG data; no external links are required. PDF/SVG labels and geometry stay vector, but the icons remain raster. QA records native pixel size, fitted bounds, DPI, meaning and SHA-256. Keep original generation prompts/terms separately; the renderer cannot verify them.
+
 ## Exports and failure behaviour
 
 Successful geometry emits `figure-01.svg` (text retained, local sans-serif fallback stack), `figure-01-outlined.svg` (stable glyph paths), `.pdf` (vector, local font embedded where supported), `.png` (600 DPI by default), `-preview.png`, `-print-size.png` (96 DPI), `-source.json`, and `-qa.json`.

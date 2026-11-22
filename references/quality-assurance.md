@@ -30,6 +30,8 @@ A figure is complete only after both scientific and visual checks have been perf
 - [ ] Figure is balanced and not unnecessarily dense.
 - [ ] Figure is understandable without relying on surrounding paragraphs.
 
+When icons are used, follow [icon QA](icon-workflow.md): inspect raw assets, transparent cutouts on light/dark/checkerboard and the final coloured-node/print-size composite. Verify meaning, palette/stroke consistency, no halos/clipping and truthful provenance; generation/model processing and local fixture testing are separate claims.
+
 ## 3. Export checks
 
 - [ ] SVG/PDF/PNG opens successfully.

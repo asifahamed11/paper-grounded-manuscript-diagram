@@ -1,0 +1,14 @@
+{
+  "scope":"Synthetic software/layout example, not research evidence",
+  "source_kind":"Locally authored Pillow artwork",
+  "reproducible_source":"make_example_assets.py",
+  "generation_or_model_inference":"Not performed",
+  "licence":"Repository MIT licence for this original illustrative artwork",
+  "assets":[
+    {"id":"records-symbol","path":"assets/records.png","meaning":"Stored source records","foreground":"#0072B2"},
+    {"id":"review-symbol","path":"assets/review.png","meaning":"Inspection of records","foreground":"#E69F00"},
+    {"id":"summary-symbol","path":"assets/summary.png","meaning":"Written synthesis","foreground":"#009E73"}
+  ],
+  "preparation":"Single-colour white matte, alpha crop, transparent safety margin; per-file hashes in assets/*.json",
+  "visual_review":"Cutouts on white/dark/checkerboard and full/print-size diagram inspected during development; recheck after any change"
+}

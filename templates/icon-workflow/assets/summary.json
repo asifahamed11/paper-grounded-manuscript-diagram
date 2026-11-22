@@ -1,0 +1,24 @@
+{
+  "source_sha256": "de6746f7cfbd59909e9c89c20491c2d98dd4f675ece93cc88dedec9c519907d7",
+  "output_sha256": "3263c504aff3d3f7901e6e4ceeaede1f63c27e56d4d16a7de2d732d3d595b862",
+  "mode": "single-colour-white-matte",
+  "original_size_px": [
+    512,
+    512
+  ],
+  "crop_bbox_px": [
+    114,
+    60,
+    399,
+    453
+  ],
+  "output_size_px": [
+    301,
+    409
+  ],
+  "padding_px": 8,
+  "warnings": [],
+  "visual_review": "pending; inspect white, dark and checkerboard preview",
+  "generation": "not performed by this helper",
+  "model_inference": "not performed by this helper"
+}

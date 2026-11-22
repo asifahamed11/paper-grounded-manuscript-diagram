@@ -18,6 +18,8 @@ If another format is more editable for the user, include it:
 
 Do not claim a file is editable unless the format and contents support editing.
 
+With optional raster icons, SVG/PDF text and shapes remain vector while embedded icons are bitmap assets. Include the prepared icons, portable source paths and [asset provenance](icon-workflow.md). Do not call the entire figure wholly vector or claim that a generated PNG became an editable vector symbol.
+
 ## 2. Research evidence
 
 Provide a reference table with:

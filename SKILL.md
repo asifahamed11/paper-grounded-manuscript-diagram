@@ -43,7 +43,9 @@ Default to a white canvas, local sans-serif font and a restrained Okabe–Ito pa
    python scripts/validate_svg.py output/figure-01.svg --json output/svg-check.json
    ```
 
-`--check-only` checks the input contract without optional packages. Dependencies in `requirements-optional.txt` are optional: inspect/use existing environments first; install only within the host's authorisation. No cloud generation, uploads or paid service is needed.
+`--check-only` checks the input contract without optional packages. Dependencies in `requirements-optional.txt` are optional: inspect/use existing environments first; install only within the host's authorisation. The core workflow needs no cloud generation, uploads or paid service.
+
+**Optional meaningful icons:** when the inspected paper figures and the actual method support icons that improve recognition, read [the icon workflow](references/icon-workflow.md). If image generation is available and authorised, generate only the distinct icons required, in one consistent context, palette and rounded style, on pure white backgrounds; remove the exterior, inspect cutouts and place them without covering labels. Preserve native alpha if already available. Keep method text/arrows editable, and use local assets or an icon-free figure when generation is unavailable. The helper never calls a generator or downloads a model automatically.
 
 Mermaid/Graphviz remain useful for quick topological sketches or when explicitly requested. Do not choose them merely because they require less drawing code. For unusual shapes, nonorthogonal relationships, equations or auto layout, author local SVG/custom plotting code or use the user's required editor rather than forcing this helper to fit. Consult [conventions](references/diagram-conventions.md) and [design system](references/design-system.md) only as needed.
 

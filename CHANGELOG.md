@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Added optional evidence-led, capability-aware icon generation guidance with coherent white-background prompts and explicit fallback behaviour.
+- Reviewed official rembg/BiRefNet sources; separated software/model licences and local inference from cloud backends and weight downloads.
+- Added an offline Pillow cutout/crop helper with native-alpha preservation, connected-exterior removal, single-colour antialias recovery, local masks and background QA previews.
+- Added local transparent-PNG placement with reserved label space, aspect-ratio preservation, collision/resolution checks, embedded exports and portable asset copies.
+- Kept image generation and model inference optional and separate from the core local renderer.
+
 ## 1.1.0
 
 - Added an offline JSON-to-Matplotlib drawing engine with editable-text SVG, vector PDF, 600-DPI PNG and print-size previews.

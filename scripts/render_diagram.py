@@ -8,6 +8,9 @@ loaded only when rendering; schema validation needs the Python standard library.
 from __future__ import annotations
 
 import argparse
+import copy
+from collections import deque
+import hashlib
 import json
 import math
 import re
@@ -123,6 +126,28 @@ def validate_spec(spec):
             raise ValueError("Annotation lies outside the canvas")
         if not isinstance(note.get("label"), str) or not note["label"].strip():
             raise ValueError("Annotation label is required")
+    icons = spec.get('icons', [])
+    if not isinstance(icons, list):raise ValueError('icons must be a list')
+    icon_ids = set()
+    for icon in icons:
+        if not isinstance(icon, dict) or not isinstance(icon.get('id'),str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]*', icon['id']):
+            raise ValueError('Each icon needs a filename-safe id')
+        if icon['id'] in icon_ids:raise ValueError('Duplicate icon id')
+        icon_ids.add(icon['id'])
+        path = icon.get('path')
+        if not isinstance(path, str) or not path or path.startswith('/') or '\\' in path or ':' in path or Path(path).is_absolute() or '..' in Path(path).parts or Path(path).suffix.lower() != '.png':
+            raise ValueError('Icon path must be a relative local PNG within the specification directory')
+        if not isinstance(icon.get('alt'), str) or not icon['alt'].strip():raise ValueError('Icon alt/meaning is required')
+        x,y,w,h = box(icon.get('box'), 'icon '+icon['id'])
+        if x < 0 or y < 0 or x+w > width or y+h > height:raise ValueError('Icon lies outside the canvas')
+        if 'node' in icon:
+            owner = next((n for n in nodes if n['id'] == icon['node']), None)
+            if owner is None:raise ValueError('Icon has unknown node')
+            reserve = number(owner.get('icon_space_pt', 0), 'node.icon_space_pt')
+            nx,ny,nw,nh = owner['box']
+            if reserve <= 0 or reserve >= nw-10:raise ValueError('Icon owner must reserve label space with icon_space_pt')
+            if not (nx+2 <= x and x+w <= nx+reserve-2 and ny+2 <= y and y+h <= ny+nh-2):
+                raise ValueError('Icon must fit in the reserved left strip of its owner node')
     return spec
 
 
@@ -217,7 +242,29 @@ def contrast(fg, bg):
     return (b+.05)/(a+.05)
 
 
-def render(spec, output_dir, stem="figure-01", dpi=600):
+def bleed_transparent_rgb(image):
+    """Extend nearest edge RGB into zero-alpha pixels without changing alpha.
+
+    Some raster backends filter straight RGB and alpha independently. Arbitrary
+    black RGB under a transparent pixel otherwise creates a dark fringe. This
+    temporary display copy keeps original prepared files and alpha untouched.
+    """
+    result=image.copy();pixels=result.load();width,height=result.size
+    seen=bytearray(1 if a else 0 for a in image.getchannel('A').getdata())
+    queue=deque()
+    for y in range(height):
+        for x in range(width):
+            if seen[y*width+x] and any(not seen[Y*width+X] for X,Y in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)) if 0<=X<width and 0<=Y<height):
+                queue.append((x,y))
+    while queue:
+        x,y=queue.popleft();rgb=pixels[x,y][:3]
+        for X,Y in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)):
+            if 0<=X<width and 0<=Y<height and not seen[Y*width+X]:
+                pixels[X,Y]=rgb+(0,);seen[Y*width+X]=1;queue.append((X,Y))
+    return result
+
+
+def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
     validate_spec(spec)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stem):
         raise ValueError("stem must be a filename without paths or extensions")
@@ -249,11 +296,11 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
             'visual_review':'pending human inspection','literature_review':'not performed by renderer',
             'font_requested':requested_font,'font_used':font,'matplotlib':matplotlib.__version__,
             'physical_inches':[width/72,height/72],'png_dpi':dpi,'errors':[],
-            'warnings':[],'text':[],'exports':[],
+            'warnings':[],'text':[],'icons':[],'exports':[],
             'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width},
             'edge_geometry_check':'16 samples per quadratic corner; visual review remains required'}
     if font != requested_font:report['warnings'].append(f'Font unavailable; substituted {font}')
-    rc={'font.family':font,'svg.fonttype':'none','pdf.fonttype':42,'savefig.facecolor':'white'}
+    rc={'font.family':font,'svg.fonttype':'none','pdf.fonttype':42,'savefig.facecolor':'white','svg.image_inline':True}
     with plt.rc_context(rc):
         fig=plt.figure(figsize=(width/72,height/72),dpi=144,facecolor='white')
         ax=fig.add_axes([0,0,1,1]);ax.set(xlim=(0,width),ylim=(height,0));ax.set_axis_off()
@@ -288,6 +335,48 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                     ax.add_patch(patch)
                 shape_paths[n['id']]=[patch.get_path()]
                 if shape=='data':shape_paths[n['id']].append(cap.get_path().transformed(cap.get_patch_transform()))
+            placed_icons=[]
+            for icon in spec.get('icons', []):
+                from PIL import Image
+                root_dir=Path(asset_dir or '.').resolve()
+                source=(root_dir/icon['path']).resolve()
+                if not source.is_relative_to(root_dir):raise ValueError('Icon path escapes its asset directory')
+                with Image.open(source) as raw_icon:
+                    if raw_icon.format != 'PNG' or raw_icon.width*raw_icon.height > 16_777_216 or getattr(raw_icon,'n_frames',1)!=1:
+                        raise ValueError('Icons must be single-frame PNGs, maximum 16 megapixels')
+                    image=raw_icon.convert('RGBA')
+                alpha=image.getchannel('A')
+                if alpha.getbbox() is None or alpha.getextrema()[0] == 255:
+                    raise ValueError('Icon must have visible foreground and genuine transparency: '+icon['id'])
+                if any(alpha.crop(b).getbbox() for b in [(0,0,image.width,1),(0,image.height-1,image.width,image.height),
+                                                         (0,0,1,image.height),(image.width-1,0,image.width,image.height)]):
+                    raise ValueError('Icon border must be transparent; prepare/crop with margin: '+icon['id'])
+                x,y,w,h=icon['box'];scale=min(w/image.width,h/image.height)
+                iw,ih=image.width*scale,image.height*scale
+                x+=(w-iw)/2;y+=(h-ih)/2
+                bounds=(x,y,x+iw,y+ih)
+                native_dpi=72/scale
+                if native_dpi < 300:report['errors'].append(f'Icon {icon["id"]} has only {native_dpi:.0f} native DPI; use a larger source or smaller placement')
+                if min(iw,ih)<12:report['warnings'].append(f'Icon {icon["id"]} is smaller than 12 pt; inspect at print size')
+                for n in spec['nodes']:
+                    if n.get('shape')=='group':continue
+                    nx,ny,nw,nh=n['box']
+                    if n['id']==icon.get('node'):
+                        if not all(any(p.contains_point(pt) for p in shape_paths[n['id']]) for pt in [(x,y),(x+iw,y),(x,y+ih),(x+iw,y+ih)]):
+                            report['errors'].append(f'Icon {icon["id"]} leaves its actual node silhouette')
+                    elif intersects(bounds,(nx,ny,nx+nw,ny+nh)):
+                        report['errors'].append(f'Icon {icon["id"]} overlaps unrelated node {n["id"]}')
+                for other,ob,_,_ in placed_icons:
+                    if intersects(bounds,ob):report['errors'].append(f'Icons overlap: {other["id"]} / {icon["id"]}')
+                # A non-ringing filter keeps a clean icon silhouette when a large
+                # transparent source is reduced to print size. Lanczos can create
+                # dark/white ripples at high-contrast alpha boundaries in Agg.
+                ax.imshow(bleed_transparent_rgb(image),extent=(x,x+iw,y+ih,y),origin='upper',aspect='auto',
+                          interpolation='hanning',interpolation_stage='rgba',zorder=4)
+                placed_icons.append((icon,bounds,source,image))
+                report['icons'].append({'id':icon['id'],'alt':icon['alt'],'path':icon['path'],
+                    'sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'native_size_px':list(image.size),
+                    'bounds_pt':list(bounds),'native_dpi':round(native_dpi,2),'background_review':'pending human inspection'})
             report['resolved_ports']=[]
             for i,e in enumerate(spec.get('edges',[])):
                 points=[tuple(p) for p in e['points']];eid=e.get('id',str(i))
@@ -350,6 +439,9 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                 labels.append((identifier,b,text))
                 report['text'].append({'id':identifier,'text':wrapped,'font_pt':size,'bounds_pt':list(b),'contrast':round(ratio,3)})
             for n in spec['nodes']:
+                if any(icon.get('node')==n['id'] for icon in spec.get('icons',[])):
+                    n=copy.deepcopy(n);x,y,w,h=n['box'];reserve=n['icon_space_pt']
+                    n['box']=[x+reserve,y,w-reserve,h]
                 if 'detail' not in n or n.get('shape')=='group':
                     add_label(n,n['id']);continue
                 x,y,w,h=n['box'];split=n.get('title_height_pt',22 if n.get('shape')=='data' else 18)
@@ -377,6 +469,12 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                 for label,b,_ in labels:
                     if any(segment_hits(a,z,b) for a,z in zip(samples,samples[1:])):
                         report['errors'].append(f'Edge {e.get("id",i)} crosses label {label}')
+            for icon,bounds,_,_ in placed_icons:
+                for label,b,_ in labels:
+                    if intersects(bounds,b):report['errors'].append(f'Icon {icon["id"]} overlaps label {label}')
+                for i,(e,samples) in enumerate(routes):
+                    if any(segment_hits(a,b,bounds) for a,b in zip(samples,samples[1:])):
+                        report['errors'].append(f'Edge {e.get("id",i)} crosses icon {icon["id"]}')
             for i,a in enumerate(spec['nodes']):
                 if a.get('shape')=='group':continue
                 x,y,w,h=a['box']
@@ -399,7 +497,9 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                         e.set('style',re.sub(r'font-family:([^;]+)',r"font-family:\1, 'Liberation Sans', Arial, sans-serif",e.get('style')))
                 root.set('role','img');root.set('aria-labelledby','diagram-title diagram-description')
                 title=ET.Element(ns+'title',{'id':'diagram-title'});title.text=spec['title'];root.insert(0,title)
-                desc=ET.Element(ns+'desc',{'id':'diagram-description'});desc.text=spec.get('description',spec['title']);root.insert(1,desc)
+                desc=ET.Element(ns+'desc',{'id':'diagram-description'});desc.text=spec.get('description',spec['title'])
+                if report['icons']:desc.text+=' Icons: '+'; '.join(i['alt'] for i in report['icons'])
+                root.insert(1,desc)
                 ET.register_namespace('',ns[1:-1]);svg.write_text(ET.tostring(root,encoding='unicode'),encoding='utf-8')
                 with plt.rc_context({'svg.fonttype':'path'}):
                     fig.savefig(output_dir/f'{stem}-outlined.svg')
@@ -408,7 +508,15 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                 fig.savefig(output_dir/f'{stem}-print-size.png',dpi=96)
                 report['exports']=[f'{stem}.{ext}' for ext in ['svg','pdf','png']]+[f'{stem}-outlined.svg']
                 report['outlined_svg_label_text_editable']=False
-                (output_dir/f'{stem}-source.json').write_text(json.dumps(spec,indent=2,ensure_ascii=False),encoding='utf-8')
+                source_spec=copy.deepcopy(spec)
+                if placed_icons:
+                    asset_output=output_dir/f'{stem}-assets';asset_output.mkdir(exist_ok=True)
+                    for item,(_,_,_,image) in zip(source_spec['icons'],placed_icons):
+                        image.save(asset_output/f'{item["id"]}.png')
+                        item['path']=f'{stem}-assets/{item["id"]}.png'
+                    report['raster_icons_in_vector_exports']=True
+                    report['warnings'].append('Icons are embedded raster assets; SVG/PDF labels and shapes remain vector')
+                (output_dir/f'{stem}-source.json').write_text(json.dumps(source_spec,indent=2,ensure_ascii=False),encoding='utf-8')
                 report['text_editable_in_svg']=True
             else:
                 fig.savefig(output_dir/f'{stem}-diagnostic.png',dpi=150)
@@ -427,7 +535,7 @@ def main():
     try:
         spec=json.loads(args.spec.read_text(encoding='utf-8-sig'));validate_spec(spec)
         if args.check_only:print('Specification valid; rendering and visual review have not run.');return 0
-        report=render(spec,args.output_dir,args.stem,args.dpi)
+        report=render(spec,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
                           'visual_review':report['visual_review'],'exports':report['exports']},indent=2))
         return 0 if report['passed_geometry_checks'] else 1

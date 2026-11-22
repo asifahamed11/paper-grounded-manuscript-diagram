@@ -52,13 +52,15 @@ Map the skill's capabilities to whatever the current platform provides:
 | Legal full-text access | Publisher OA page, PMC, arXiv, ACL Anthology, institutional repository |
 | PDF reading | Built-in file reader, PDF tool, or local PDF library |
 | Figure inspection | Image viewer, browser PDF renderer, screenshot capability |
+| Optional icon generation | Host-provided image generator when available and authorised; otherwise local/permitted assets or an icon-free diagram |
+| Icon preparation | Local Pillow helper; a reviewed local segmentation mask for complex backgrounds; no automatic weights or cloud removal |
 | Diagram authoring | Bundled local Matplotlib renderer or SVG; Mermaid/Graphviz for topology sketches; native draw.io/PowerPoint when requested |
 | GIS mapping | QGIS, GeoPandas, GIS connector |
 | Export and QA | SVG/PDF renderer, image viewer, file inspection tools |
 
 These are examples. Do not assume any specific integration exists.
 
-The bundled renderer's `--check-only` works with the Python standard library. Actual SVG/PDF/PNG output needs Matplotlib; image/contact-sheet checks need Pillow; PDF inspection needs PyMuPDF. Reuse an existing project interpreter, and do not install packages automatically. `agents/openai.yaml` supplies optional Codex UI metadata, not a universal plugin or proof that the host discovered the skill.
+The bundled renderer's `--check-only` works with the Python standard library. Actual SVG/PDF/PNG output needs Matplotlib; icon preparation/placement and contact-sheet checks need Pillow; PDF inspection needs PyMuPDF. Reuse an existing project interpreter, and do not install packages automatically. See [the icon workflow](icon-workflow.md) only when icons are useful; generation and model inference are independent optional capabilities. `agents/openai.yaml` supplies optional Codex UI metadata, not a universal plugin or proof that the host discovered the skill.
 
 ## Security
 
