@@ -1,0 +1,25 @@
+{
+  "title":"Illustrative eligibility decision workflow",
+  "description":"Demonstration of a decision, explicit branch labels and a shared audit summary. Replace with verified study criteria.",
+  "canvas":{"width_pt":400,"height_pt":350,"font_pt":9,"min_font_pt":8.5},
+  "nodes":[
+    {"id":"records","shape":"data","box":[130,8,140,46],"label":"Candidate records","detail":"Documented sources","fill":"sky_blue"},
+    {"id":"audit","box":[130,74,140,42],"label":"Apply eligibility criteria","bold":true},
+    {"id":"decision","shape":"decision","box":[145,136,110,72],"label":"Eligible?","bold":true},
+    {"id":"excluded","box":[10,232,140,46],"label":"Document exclusions","detail":"Record the reasons"},
+    {"id":"included","box":[245,232,145,46],"label":"Primary analysis","detail":"Eligible records only"},
+    {"id":"summary","shape":"terminator","box":[130,300,140,38],"label":"Audit summary","fill":"green","bold":true}
+  ],
+  "edges":[
+    {"from":"records","to":"audit","points":[[200,54],[200,74]]},
+    {"from":"audit","to":"decision","points":[[200,116],[200,136]]},
+    {"from":"decision","to":"excluded","points":[[145,172],[80,172],[80,232]]},
+    {"from":"decision","to":"included","points":[[255,172],[317.5,172],[317.5,232]]},
+    {"from":"excluded","to":"summary","points":[[80,278],[80,290],[170,290],[170,300]]},
+    {"from":"included","to":"summary","points":[[317.5,278],[317.5,290],[230,290],[230,300]]}
+  ],
+  "annotations":[
+    {"box":[88,186,30,18],"label":"No","padding_pt":2},
+    {"box":[266,186,30,18],"label":"Yes","padding_pt":2}
+  ]
+}

@@ -43,6 +43,17 @@ class SpecTests(unittest.TestCase):
             spec=minimal();spec['edges'][0].update(change)
             with self.assertRaises(ValueError):R.validate_spec(spec)
 
+    def test_rounded_routes_preserve_endpoints_and_limit_radius(self):
+        commands,samples=R.rounded_route([[0,0],[10,0],[10,20]],100)
+        self.assertEqual(samples[0],(0,0));self.assertEqual(samples[-1],(10,20))
+        self.assertIn('Q',[c for c,p in commands])
+        self.assertTrue(all(0<=x<=10 and 0<=y<=20 for x,y in samples))
+
+    def test_bad_visual_style_is_rejected(self):
+        for style in [{'connector_style':'unknown'},{'connector_radius_pt':-1},{'line_width_pt':0}]:
+            spec=minimal();spec['style']=style
+            with self.assertRaises(ValueError):R.validate_spec(spec)
+
 try:
     import matplotlib
     HAS_MPL=True
@@ -120,9 +131,35 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(report['text'][0]['text'],'Cost $100 and $200')
 
     def test_bundled_templates_really_render(self):
-        for name in ['linear-workflow.json','parallel-study.json']:
+        for name in ['linear-workflow.json','parallel-study.json','decision-workflow.json','conceptual-framework.json']:
             with self.subTest(name=name):
                 report=self.draw(json.loads((ROOT/'templates'/name).read_text(encoding='utf-8')))
                 self.assertTrue(report['passed_geometry_checks'],report['errors'])
+
+    def test_all_polygon_shapes_and_elbows_are_rounded_by_default(self):
+        spec=json.loads((ROOT/'templates/decision-workflow.json').read_text(encoding='utf-8'))
+        report=self.draw(spec);self.assertTrue(report['passed_geometry_checks'],report['errors'])
+        root=ET.parse(self.out/'figure-01.svg').getroot()
+        paths=[e.get('d','') for e in root.iter('{http://www.w3.org/2000/svg}path')]
+        self.assertGreaterEqual(sum('Q' in p for p in paths),5)
+        self.assertEqual(report['style']['connector_radius_pt'],5)
+
+    def test_curve_corner_obstacle_checks_follow_actual_route(self):
+        commands,samples=R.rounded_route([[0,0],[10,0],[10,10]],5)
+        obstacle=(8.5,1,9,1.5)
+        self.assertTrue(any(R.segment_hits(a,b,obstacle) for a,b in zip(samples,samples[1:])))
+        self.assertFalse(R.segment_hits((0,0),(10,0),obstacle))
+
+    def test_explicit_square_connector_override_remains_available(self):
+        spec=minimal();spec['style']={'connector_style':'orthogonal','corner_radius_pt':0}
+        report=self.draw(spec);self.assertTrue(report['passed_geometry_checks'])
+        self.assertEqual(report['style']['connector_radius_pt'],0)
+
+    def test_connectors_touch_sloped_input_outline(self):
+        spec=json.loads((ROOT/'templates/conceptual-framework.json').read_text(encoding='utf-8'))
+        report=self.draw(spec);self.assertTrue(report['passed_geometry_checks'],report['errors'])
+        port=report['resolved_ports'][0]['start']
+        self.assertAlmostEqual(port[0],196.5,places=3)
+        self.assertAlmostEqual(port[1],69,places=3)
 
 if __name__=='__main__':unittest.main()

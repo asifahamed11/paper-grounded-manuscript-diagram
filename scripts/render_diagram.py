@@ -55,6 +55,13 @@ def validate_spec(spec):
         raise ValueError("Positive canvas and 6 <= min_font_pt <= font_pt <= 36 required")
     if not str(spec.get("title", "")).strip():
         raise ValueError("A descriptive title is required")
+    style=spec.get('style',{})
+    if not isinstance(style,dict):raise ValueError('style must be an object')
+    for key,default in [('corner_radius_pt',5),('connector_radius_pt',5),('line_width_pt',.85)]:
+        value=number(style.get(key,default),'style.'+key)
+        if value < 0 or (key=='line_width_pt' and value==0):raise ValueError(f'style.{key} must be nonnegative, with positive line width')
+    if style.get('connector_style','rounded') not in {'rounded','orthogonal'}:
+        raise ValueError('connector_style must be rounded or orthogonal')
     nodes = spec.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         raise ValueError("At least one node is required")
@@ -103,6 +110,8 @@ def validate_spec(spec):
                 raise ValueError(f"Edge {eid} must use nonzero orthogonal segments")
         if edge.get("style", "solid") not in {"solid", "dashed"}:
             raise ValueError(f"Edge {eid} style must be solid or dashed")
+        if edge.get('arrow','end') not in {'end','both','none'}:
+            raise ValueError(f'Edge {eid} arrow must be end, both or none')
         if edge.get("style") == "dashed" and not edge.get("meaning"):
             raise ValueError(f"Dashed edge {eid} needs an explicit meaning")
     annotations=spec.get('annotations',[])
@@ -122,16 +131,81 @@ def intersects(a, b, gap=0):
 
 
 def segment_hits(a, b, bounds):
-    x0,y0,x1,y1 = bounds
-    if a[0] == b[0]:
-        return x0 < a[0] < x1 and min(a[1],b[1]) < y1 and max(a[1],b[1]) > y0
-    return y0 < a[1] < y1 and min(a[0],b[0]) < x1 and max(a[0],b[0]) > x0
+    # Open-interior slab intersection works for straight and sampled curved paths.
+    low,high=0.,1.
+    for start,end,mn,mx in zip(a,b,bounds[:2],bounds[2:]):
+        delta=end-start
+        if abs(delta)<1e-10:
+            if not mn < start < mx:return False
+        else:
+            enter,leave=sorted(((mn-start)/delta,(mx-start)/delta))
+            low=max(low,enter);high=min(high,leave)
+            if high-low<=1e-10:return False
+    return high-low>1e-10
+
+
+def rounded_route(points, radius):
+    """Return SVG-like commands and samples for filleted orthogonal connections."""
+    commands=[('M',tuple(points[0]))];samples=[tuple(points[0])]
+    for i in range(1,len(points)-1):
+        a,b,c=points[i-1],points[i],points[i+1]
+        before=math.dist(a,b);after=math.dist(b,c)
+        turn=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0])
+        r=min(radius,before/2,after/2)
+        if r<=0 or abs(turn)<1e-10:
+            commands.append(('L',tuple(b)));samples.append(tuple(b));continue
+        enter=tuple(b[j]+(a[j]-b[j])*r/before for j in (0,1))
+        leave=tuple(b[j]+(c[j]-b[j])*r/after for j in (0,1))
+        commands.extend([('L',enter),('Q',tuple(b)),('Q',leave)])
+        samples.append(enter)
+        for step in range(1,17):
+            t=step/16;samples.append(tuple((1-t)**2*enter[j]+2*(1-t)*t*b[j]+t*t*leave[j] for j in (0,1)))
+    commands.append(('L',tuple(points[-1])));samples.append(tuple(points[-1]))
+    return commands,samples
+
+
+def rounded_polygon(points, radius):
+    """Round a polygon's vertices without changing its semantic silhouette."""
+    commands=[]
+    for i,b in enumerate(points):
+        a=points[i-1];c=points[(i+1)%len(points)]
+        r=min(radius,math.dist(a,b)/3,math.dist(b,c)/3)
+        enter=tuple(b[j]+(a[j]-b[j])*r/math.dist(a,b) for j in (0,1))
+        leave=tuple(b[j]+(c[j]-b[j])*r/math.dist(b,c) for j in (0,1))
+        commands.extend([('M' if i==0 else 'L',enter),('Q',tuple(b)),('Q',leave)])
+    commands.append(('Z',commands[0][1]));return commands
 
 
 def on_boundary(point, bounds, tolerance=1.5):
     x,y,w,h = bounds; px,py = point
     return ((abs(px-x) <= tolerance or abs(px-x-w) <= tolerance) and y-tolerance <= py <= y+h+tolerance
             or (abs(py-y) <= tolerance or abs(py-y-h) <= tolerance) and x-tolerance <= px <= x+w+tolerance)
+
+
+def shape_port(point, neighbour, bounds, paths):
+    """Intersect the outgoing corridor with the actual rounded/sloping silhouette."""
+    x,y,w,h=bounds
+    axis=0 if point[0]!=neighbour[0] else 1
+    fixed=point[1-axis]
+    # At either endpoint the adjacent route point lies outside the named shape.
+    outward=neighbour[axis]-point[axis]
+    side=1 if outward>0 else -1
+    low=(x,y)[axis];span=(w,h)[axis]
+    def coord(value):return (value,fixed) if axis==0 else (fixed,value)
+    def inside(value):return any(path.contains_point(coord(value)) for path in paths)
+    # Find an interior point on this corridor, not the rectangle's corner.
+    interior=low+span/2
+    if not inside(interior):
+        candidates=[low+span*i/128 for i in range(1,128)]
+        found=next((v for v in candidates if inside(v)),None)
+        if found is None:raise ValueError('Connection corridor misses its named shape; choose a central port')
+        interior=found
+    exterior=low+span+2 if side>0 else low-2
+    for _ in range(36):
+        midpoint=(interior+exterior)/2
+        if inside(midpoint):interior=midpoint
+        else:exterior=midpoint
+    return coord((interior+exterior)/2)
 
 
 def contrast(fg, bg):
@@ -154,10 +228,13 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
     import matplotlib.pyplot as plt
     from matplotlib import font_manager
     from matplotlib.ft2font import FT2Font
-    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Polygon, Ellipse, PathPatch
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Ellipse, PathPatch
     from matplotlib.path import Path as PlotPath
     import xml.etree.ElementTree as ET
     canvas=spec['canvas']; width=canvas['width_pt'];height=canvas['height_pt']
+    design=spec.get('style',{});corner=design.get('corner_radius_pt',5)
+    bend=design.get('connector_radius_pt',5) if design.get('connector_style','rounded')=='rounded' else 0
+    line_width=design.get('line_width_pt',.85)
     minimum=canvas.get('min_font_pt',8.5);base=canvas.get('font_pt',9)
     requested_font=canvas.get('font_family','DejaVu Sans')
     try:
@@ -172,34 +249,28 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
             'visual_review':'pending human inspection','literature_review':'not performed by renderer',
             'font_requested':requested_font,'font_used':font,'matplotlib':matplotlib.__version__,
             'physical_inches':[width/72,height/72],'png_dpi':dpi,'errors':[],
-            'warnings':[],'text':[],'exports':[]}
+            'warnings':[],'text':[],'exports':[],
+            'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width},
+            'edge_geometry_check':'16 samples per quadratic corner; visual review remains required'}
     if font != requested_font:report['warnings'].append(f'Font unavailable; substituted {font}')
     rc={'font.family':font,'svg.fonttype':'none','pdf.fonttype':42,'savefig.facecolor':'white'}
     with plt.rc_context(rc):
         fig=plt.figure(figsize=(width/72,height/72),dpi=144,facecolor='white')
         ax=fig.add_axes([0,0,1,1]);ax.set(xlim=(0,width),ylim=(height,0));ax.set_axis_off()
         nodes={n['id']:n for n in spec['nodes']}
+        routes=[]
+        def plot_path(commands):
+            codes={'M':PlotPath.MOVETO,'L':PlotPath.LINETO,'Q':PlotPath.CURVE3,'Z':PlotPath.CLOSEPOLY}
+            return PlotPath([p for cmd,p in commands],[codes[cmd] for cmd,p in commands])
         try:
-            # Draw paths before shapes/text. Explicit routes preserve semantic intent.
-            for i,e in enumerate(spec.get('edges',[])):
-                points=e['points']; eid=e.get('id',str(i))
-                if not on_boundary(points[0],nodes[e['from']]['box']) or not on_boundary(points[-1],nodes[e['to']]['box']):
-                    report['errors'].append(f'Edge {eid} does not meet its named node boundaries')
-                style=(0,(3,2)) if e.get('style')=='dashed' else 'solid'
-                if len(points)>2:ax.plot(*zip(*points[:-1]),color='black',lw=.85,linestyle=style,zorder=1)
-                ax.add_patch(FancyArrowPatch(points[-2],points[-1],arrowstyle='-|>',mutation_scale=6,
-                    color='black',linewidth=.85,linestyle=style,shrinkA=0,shrinkB=.4,zorder=1))
-                for node in spec['nodes']:
-                    if node['id'] in {e['from'],e['to']} or node.get('shape')=='group':continue
-                    x,y,w,h=node['box']
-                    if any(segment_hits(a,b,(x+.5,y+.5,x+w-.5,y+h-.5)) for a,b in zip(points,points[1:])):
-                        report['errors'].append(f'Edge {eid} crosses unrelated node {node["id"]}')
+            # Build semantic silhouettes first; z-order keeps connectors behind them.
+            shape_paths={}
             for n in spec['nodes']:
                 x,y,w,h=n['box'];shape=n.get('shape','process');fill=color(n.get('fill','white'))
                 if shape in {'process','terminator','header','group'}:
-                    radius=min(h/2,16) if shape=='terminator' else 5
+                    radius=min(h/2,16) if shape=='terminator' else min(corner,h/2,w/2)
                     patch=FancyBboxPatch((x,y),w,h,boxstyle=f'round,pad=0,rounding_size={radius}',
-                        facecolor='none' if shape=='group' else fill,edgecolor='black',lw=.85,
+                        facecolor='none' if shape=='group' else fill,edgecolor='black',lw=line_width,
                         linestyle=(0,(3,2)) if shape=='group' else 'solid',zorder=0 if shape=='group' else 2)
                     ax.add_patch(patch)
                 elif shape=='data':
@@ -207,11 +278,34 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
                     verts=[(x,y+ey/2),(x,y),(x+w,y),(x+w,y+ey/2),(x+w,y+h-ey/2),
                            (x+w,y+h),(x,y+h),(x,y+h-ey/2),(x,y+ey/2),(x,y+ey/2)]
                     codes=[PlotPath.MOVETO]+[PlotPath.CURVE4]*3+[PlotPath.LINETO]+[PlotPath.CURVE4]*3+[PlotPath.LINETO,PlotPath.CLOSEPOLY]
-                    ax.add_patch(PathPatch(PlotPath(verts,codes),facecolor=fill,edgecolor='black',lw=.85,zorder=2))
-                    ax.add_patch(Ellipse((x+w/2,y+ey/2),w,ey,facecolor=fill,edgecolor='black',lw=.85,zorder=3))
+                    patch=PathPatch(PlotPath(verts,codes),facecolor=fill,edgecolor='black',lw=line_width,zorder=2)
+                    ax.add_patch(patch)
+                    cap=Ellipse((x+w/2,y+ey/2),w,ey,facecolor=fill,edgecolor='black',lw=line_width,zorder=3)
+                    ax.add_patch(cap)
                 else:
                     pts=[(x+w/2,y),(x+w,y+h/2),(x+w/2,y+h),(x,y+h/2)] if shape=='decision' else [(x+7,y),(x+w,y),(x+w-7,y+h),(x,y+h)]
-                    ax.add_patch(Polygon(pts,closed=True,facecolor=fill,edgecolor='black',lw=.85,zorder=2))
+                    patch=PathPatch(plot_path(rounded_polygon(pts,min(corner,3))),facecolor=fill,edgecolor='black',lw=line_width,zorder=2,joinstyle='round')
+                    ax.add_patch(patch)
+                shape_paths[n['id']]=[patch.get_path()]
+                if shape=='data':shape_paths[n['id']].append(cap.get_path().transformed(cap.get_patch_transform()))
+            report['resolved_ports']=[]
+            for i,e in enumerate(spec.get('edges',[])):
+                points=[tuple(p) for p in e['points']];eid=e.get('id',str(i))
+                if not on_boundary(points[0],nodes[e['from']]['box']) or not on_boundary(points[-1],nodes[e['to']]['box']):
+                    report['errors'].append(f'Edge {eid} does not meet its named node boundaries')
+                else:
+                    points[0]=shape_port(points[0],points[1],nodes[e['from']]['box'],shape_paths[e['from']])
+                    points[-1]=shape_port(points[-1],points[-2],nodes[e['to']]['box'],shape_paths[e['to']])
+                report['resolved_ports'].append({'id':eid,'start':list(points[0]),'end':list(points[-1])})
+                style=(0,(3,2)) if e.get('style')=='dashed' else 'solid'
+                commands,samples=rounded_route(points,bend);routes.append((e,samples))
+                ax.add_patch(FancyArrowPatch(path=plot_path(commands),arrowstyle={'end':'-|>','both':'<|-|>','none':'-'}[e.get('arrow','end')],mutation_scale=6,
+                    color='black',linewidth=line_width,linestyle=style,shrinkA=0,shrinkB=.4,zorder=1,joinstyle='round',capstyle='round'))
+                for node in spec['nodes']:
+                    if node['id'] in {e['from'],e['to']} or node.get('shape')=='group':continue
+                    x,y,w,h=node['box']
+                    if any(segment_hits(a,b,(x+.5,y+.5,x+w-.5,y+h-.5)) for a,b in zip(samples,samples[1:])):
+                        report['errors'].append(f'Edge {eid} crosses unrelated node {node["id"]}')
             labels=[]
             def add_label(record, identifier):
                 x,y,w,h=record['box'];shape=record.get('shape','process');padding=record.get('padding_pt',5)
@@ -279,9 +373,9 @@ def render(spec, output_dir, stem="figure-01", dpi=600):
             for i,(aid,ab,_) in enumerate(labels):
                 for bid,bb,_ in labels[i+1:]:
                     if intersects(ab,bb):report['errors'].append(f'Labels overlap: {aid} / {bid}')
-            for i,e in enumerate(spec.get('edges',[])):
+            for i,(e,samples) in enumerate(routes):
                 for label,b,_ in labels:
-                    if any(segment_hits(a,z,b) for a,z in zip(e['points'],e['points'][1:])):
+                    if any(segment_hits(a,z,b) for a,z in zip(samples,samples[1:])):
                         report['errors'].append(f'Edge {e.get("id",i)} crosses label {label}')
             for i,a in enumerate(spec['nodes']):
                 if a.get('shape')=='group':continue

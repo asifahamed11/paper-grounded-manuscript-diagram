@@ -28,7 +28,7 @@ Use the Okabe-Ito palette by default unless the user or target journal specifies
 
 - Rounded rectangles are the default for ordinary process and information blocks.
 - Use standard decision diamonds, terminators, input/output shapes, and map symbols when the diagram convention calls for them.
-- Keep corner radii consistent.
+- Keep corner radii consistent across ordinary boxes and headers. Give decision/input silhouettes gently rounded vertices too; retain their role rather than replacing all shapes with circles.
 - Avoid excessive nested containers and decorative shapes.
 - Use borders sparingly and consistently.
 
@@ -54,6 +54,7 @@ Use the Okabe-Ito palette by default unless the user or target journal specifies
 ## 5. Lines and arrows
 
 - Use consistent connector thickness and arrowhead style.
+- Default to rounded caps/joins and smooth filleted connector bends. Use orthogonal control corridors to keep routing clear, and curve the elbows consistently across every diagram type. Hard elbows require an explicit user/venue choice.
 - Use solid arrows for the primary flow unless another convention is required.
 - Use dashed or dotted lines only when their meaning is explained.
 - Route connectors around nodes and labels.

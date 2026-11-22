@@ -1,0 +1,16 @@
+{
+  "title":"Illustrative association framework",
+  "description":"Noncausal conceptual example. Undirected dashed links show planned associations, not causal effects.",
+  "canvas":{"width_pt":500,"height_pt":260,"font_pt":9,"min_font_pt":8.5},
+  "nodes":[
+    {"id":"heading","shape":"header","box":[20,8,460,24],"label":"Illustrative association framework","fill":"blue","text_color":"white","bold":true,"font_pt":10},
+    {"id":"exposure","shape":"input","box":[20,44,180,50],"label":"Reported exposure","detail":"Prespecified measure","fill":"sky_blue"},
+    {"id":"context","box":[20,150,180,50],"label":"Contextual factors","detail":"Potential covariates"},
+    {"id":"outcome","box":[300,98,180,50],"label":"Observed outcome","detail":"Prespecified measure","fill":"orange"}
+  ],
+  "edges":[
+    {"from":"exposure","to":"outcome","points":[[200,69],[250,69],[250,112],[300,112]],"arrow":"none","style":"dashed","meaning":"Planned association, not causation"},
+    {"from":"context","to":"outcome","points":[[200,175],[270,175],[270,134],[300,134]],"arrow":"none","style":"dashed","meaning":"Planned association, not causation"}
+  ],
+  "annotations":[{"box":[20,215,460,26],"label":"Dashed lines indicate associations; no causal effects are asserted.","font_pt":8.5}]
+}

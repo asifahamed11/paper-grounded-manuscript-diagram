@@ -7,6 +7,7 @@ Choose conventions according to the diagram's purpose. Do not force a diagram in
 - Use a consistent top-to-bottom or left-to-right reading direction.
 - Use terminators for start/end where appropriate.
 - Use process rectangles (rounded by default).
+- Keep all supported shape corners softly rounded, including input and decision outlines; keep the data/decision semantics recognisable. Use curved connector bends with consistent caps and line widths.
 - Use decision diamonds for actual branching decisions.
 - Use input/output parallelograms when that distinction helps.
 - Label decision branches clearly, such as Yes/No or condition names.
@@ -53,6 +54,7 @@ This is only a planning pattern. Include only stages that the user's research ac
 - Establish a clear hierarchy: central construct, dimensions, factors, outcomes, or hypotheses.
 - Use arrows only when they indicate a defined relationship.
 - Distinguish association, influence, mediation, moderation, and causation. Do not use a causal arrow for a mere correlation.
+- Use an arrowless association line when direction is not supported; the local renderer supports `arrow: "none"`. Show a legend for dashed associations.
 - Label relationship types when the line alone is ambiguous.
 - Keep the framework balanced and avoid excessive cross-links.
 

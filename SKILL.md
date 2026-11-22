@@ -29,12 +29,12 @@ For paper-grounded mode, read [paper research](references/paper-research-protoco
 
 ## 2. Draw deliberately
 
-Default to a white canvas, local sans-serif font and a restrained Okabe–Ito palette unless the user/venue chooses otherwise. Use colour for lanes or roles, not every box. Give text hierarchy, consistent inner padding, small rounded process corners and thin orthogonal connectors their own space. Data cylinders, decisions and input symbols should represent those actual roles. Use dashed edges only with an explained meaning.
+Default to a white canvas, local sans-serif font and a restrained Okabe–Ito palette unless the user/venue chooses otherwise. Apply one **rounded visual language** across the whole figure: rounded process/group/header corners, gently rounded decision/input outlines, curved data caps and smooth connector bends. Keep semantic shapes recognisable; rounded does not mean turning every node into a circle. Use thin connectors with rounded caps/joins and filleted bends rather than mixing hard elbows with soft boxes. Sharp connectors are an explicit user/venue override, not a random per-node default. Use colour for lanes or roles, not every box. Preserve title/detail hierarchy and inner padding. Use dashed edges only with an explained meaning.
 
 **Preferred for precise manuscript workflows:** local Python + Matplotlib or standalone SVG. The bundled renderer supplies rounded processes, data cylinders, input parallelograms, decisions, groups and outputs, with explicit point coordinates, label wrapping and measured geometry checks.
 
 1. Read [the drawing contract](references/rendering.md).
-2. Copy and adapt `templates/parallel-study.json` for parallel workflows or `templates/linear-workflow.json` for a true sequence. These are **illustrative schemas**, not evidence of the user's research. Remove unsupported content.
+2. Choose a **structural starting point**, not a fixed picture: `templates/parallel-study.json` for concurrent studies, `linear-workflow.json` for a sequence, `decision-workflow.json` for explicit eligibility branches, or `conceptual-framework.json` for noncausal associations. These are illustrative schemas, not evidence of the user's research. Remove unsupported content and recompose the layout for the actual method; do not merely rename a favourite example.
 3. Replace all example labels, physical size and routes with the verified specification. Keep scientific content, labels and geometry in JSON; keep reusable mechanics in the renderer.
 4. Run with an existing local Python environment containing Matplotlib:
 

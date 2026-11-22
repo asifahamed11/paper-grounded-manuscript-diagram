@@ -18,7 +18,8 @@ This package follows the open [Agent Skills specification](https://agentskills.i
 - Uses the Okabe-Ito palette and rounded process shapes by default.
 - Applies the correct conventions for flowcharts, methodology diagrams, conceptual frameworks, architectures, graphical abstracts, and study-area maps.
 - Checks scientific accuracy, readability, alignment, exports, and remaining limitations.
-- Includes a Python/Matplotlib renderer, illustrative parallel and linear layout specifications, editable SVG, vector PDF, 600-DPI PNG, and measured geometry reports.
+- Includes a Python/Matplotlib renderer, illustrative sequential, parallel, decision and noncausal conceptual layouts, editable SVG, vector PDF, 600-DPI PNG, and measured geometry reports.
+- Applies rounded outlines and smooth connector bends consistently across layouts, with explicit overrides for venue-specific rules.
 
 ## Important portability note
 
@@ -56,6 +57,8 @@ paper-grounded-manuscript-diagram/
 │   ├── figure-analysis.md
 │   ├── diagram-spec.yaml
 │   ├── linear-workflow.json
+│   ├── decision-workflow.json
+│   ├── conceptual-framework.json
 │   ├── parallel-study.json
 │   └── methodology-flow.mmd
 ├── tests/
@@ -94,6 +97,8 @@ python scripts/validate_svg.py diagram-output/methodology.svg --json diagram-out
 Read [the drawing contract](references/rendering.md). Coordinates use points at the actual manuscript size. The renderer measures label overflow, node overlap, contrast, arrow endpoints and paths through unrelated content, returning a nonzero exit code on failure. Open `methodology-preview.png` and `methodology-print-size.png` yourself: automated geometry does not establish scientific accuracy or visual polish. On failure, do not mistake older files in a reused output directory for a new successful export.
 
 SVG retains text for a vector editor and includes a local sans-serif fallback stack; PDF embeds local fonts where supported. The additional `-outlined.svg` keeps label appearance stable for Word embedding, but its letters are not editable text. Neither is a native Word, PowerPoint or draw.io diagram. No remote fonts, hosted image generator or paid API is needed. Use other local authoring tools for unsupported diagram types.
+
+The default `style` rounds shape corners and connector elbows across all examples. Choose `connector_style: "orthogonal"` only when a user or venue requests hard elbows. Use `arrow: "none"` for undirected associations and `arrow: "both"` only when justified. Do not treat the parallel example as a universal layout: choose and recompose a structure from the method.
 
 ### 1. Rank a paper candidate list
 

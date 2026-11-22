@@ -43,3 +43,7 @@ jobs:
         run: |
           python scripts/render_diagram.py templates/parallel-study.json --output-dir diagram-output --stem methodology
           python scripts/validate_svg.py diagram-output/methodology.svg
+          python scripts/render_diagram.py templates/decision-workflow.json --output-dir diagram-output --stem decision
+          python scripts/validate_svg.py diagram-output/decision.svg
+          python scripts/render_diagram.py templates/conceptual-framework.json --output-dir diagram-output --stem conceptual
+          python scripts/validate_svg.py diagram-output/conceptual.svg

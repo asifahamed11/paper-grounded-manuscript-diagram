@@ -1,6 +1,23 @@
 # Local drawing contract
 
-`scripts/render_diagram.py` renders a human/agent-designed JSON specification. It supplies drawing and measurement mechanics; it does not infer a method or automatically lay out a graph.
+`scripts/render_diagram.py` renders a human/agent-designed JSON specification. It supplies drawing and measurement mechanics; it does not infer a method or automatically lay out a graph. Use the sequential, parallel, decision or association template only when its topology matches the method; recompose for different content.
+
+## Shared rounded style
+
+The whole renderer defaults to soft corners and smooth connector bends. Process boxes, headers and group frames share a five-point corner radius; semantic input/decision silhouettes retain their meaning with gently rounded vertices. Data sources have curved caps and outputs use rounded terminators. This is a visual system applied to all layouts, not a special case for one figure.
+
+```json
+"style": {
+  "corner_radius_pt": 5,
+  "connector_style": "rounded",
+  "connector_radius_pt": 5,
+  "line_width_pt": 0.85
+}
+```
+
+Connectors follow the supplied orthogonal corridors but replace each bend with a quadratic fillet. Short segments automatically limit the radius to half the adjacent segment lengths. Caps and joins are rounded. If a venue explicitly requires hard elbows, set `connector_style` to `orthogonal`; set `corner_radius_pt` to zero only for a deliberate square-shape override. Do not mix arbitrary per-node styles.
+
+Specify ports on the named bounding-box edges. The renderer intersects that corridor with the **actual** rounded/sloping outline, preserving the horizontal/vertical direction. This prevents visible gaps at parallelograms, softened diamond tips and cylinder caps. The resolved ports are recorded in QA. A corridor that misses the shape fails instead of silently inventing a connection.
 
 ## Coordinates and size
 
@@ -29,7 +46,9 @@ For a bold title over a regular-weight explanation, supply `label` and `detail` 
  "points":[[87,92],[87,110]], "style":"solid"}
 ```
 
-Give every edge named source/target nodes and an explicit route with at least two points. Routes consist of nonzero horizontal/vertical segments. First and last points must meet their named boxes. Make corridors for connectors; do not route through unrelated nodes or text. A merge can use two routes ending on the same target boundary. A dedicated junction may be represented by a small process node only when scientifically meaningful; avoid adding empty dummy methods.
+Give every edge named source/target nodes and an explicit route with at least two points. Route control points consist of nonzero horizontal/vertical segments; the renderer rounds their bends by default. First and last points must meet their named boxes. Make corridors for connectors; do not route through unrelated nodes or text. Obstacle/label checks use the drawn curves sampled at 16 points per bend, rather than checking only the unrounded controls. A merge can use two routes ending on the same target boundary. A dedicated junction may be represented by a small process node only when scientifically meaningful; avoid adding empty dummy methods.
+
+`arrow` defaults to `end`. Use `none` for undirected associations and `both` only for a genuinely two-way relationship. An arrowless edge still needs `from`/`to` for geometry; those names do not assert causal direction. The conceptual-framework example shows association lines and an explicit noncausal note.
 
 For `style: "dashed"`, include `meaning`, and explain that meaning in a visible note or caption. The string is audit metadata, not an automatically drawn legend. Put footer/legend text in `annotations`, with its own `box`, `label`, optional font size and padding. These bounds and collisions are measured too.
 
