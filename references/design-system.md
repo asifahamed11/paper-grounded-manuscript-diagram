@@ -43,6 +43,8 @@ Use the Okabe-Ito palette by default unless the user or target journal specifies
 
 ## 4. Spacing and alignment
 
+Use a compact, balanced layout by default. Fit the canvas to the organised content within the venue's dimensions; size boxes around readable text and group title/detail tightly. Reduce oversized boxes, excess outer margins and empty inter-panel corridors before adding more elements. Follow [density and whitespace](layout-density.md) for composition and measured review; a fill percentage is an advisory, not a reason to crowd the figure.
+
 - Use a consistent grid and equal gaps between comparable nodes.
 - Align edges and centers deliberately.
 - Keep enough whitespace around groups and between labels and connectors.

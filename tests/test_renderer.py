@@ -159,7 +159,8 @@ class RenderTests(unittest.TestCase):
         spec=json.loads((ROOT/'templates/conceptual-framework.json').read_text(encoding='utf-8'))
         report=self.draw(spec);self.assertTrue(report['passed_geometry_checks'],report['errors'])
         port=report['resolved_ports'][0]['start']
-        self.assertAlmostEqual(port[0],196.5,places=3)
-        self.assertAlmostEqual(port[1],69,places=3)
+        x,y,w,h=next(n['box'] for n in spec['nodes'] if n['id']=='exposure')
+        self.assertAlmostEqual(port[0],x+w-3.5,places=3)
+        self.assertAlmostEqual(port[1],y+h/2,places=3)
 
 if __name__=='__main__':unittest.main()

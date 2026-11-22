@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- Made compact, balanced composition the default guidance across layouts, with content-first canvas sizing, measured text stacks and space for meaningful routing.
+- Added advisory node-box occupancy, margins, nearest gaps, crowding and rendered content-envelope metrics; headers/containers cannot inflate main-node occupancy.
+- Added a package-free `--layout-only` check; density warnings remain separate from geometry failures and scientific review.
+- Centred title/detail together by default; retained explicit legacy band heights for compatibility.
+- Added measured inline-title icons plus right/top placement, so icon positioning can be compared without a compulsory empty left strip.
+- Shortened the README around real visual examples and a clear quick start; refreshed contribution guidance.
+
 ## 1.2.0
 
 - Added optional evidence-led, capability-aware icon generation guidance with coherent white-background prompts and explicit fallback behaviour.

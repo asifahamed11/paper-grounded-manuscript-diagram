@@ -1,21 +1,140 @@
 {
-  "title":"Illustrative research workflow with optional icons",
-  "description":"A synthetic layout example with three locally authored symbols. These are not generated images or evidence of any study protocol.",
-  "canvas":{"width_pt":560,"height_pt":192,"font_pt":9,"min_font_pt":8.5},
-  "nodes":[
-    {"id":"heading","shape":"header","box":[16,12,528,30],"label":"Illustrative research workflow with optional icons","fill":"blue","text_color":"white","bold":true,"font_pt":11},
-    {"id":"records","box":[16,68,152,62],"label":"Collect","detail":"Source records","title_height_pt":30,"icon_space_pt":36},
-    {"id":"review","box":[204,68,152,62],"label":"Review","detail":"Quality checks","title_height_pt":30,"icon_space_pt":36},
-    {"id":"summary","box":[392,68,152,62],"label":"Synthesize","detail":"Research summary","title_height_pt":30,"icon_space_pt":36}
+  "title": "Illustrative research workflow with optional icons",
+  "description": "A synthetic layout example with three locally authored symbols. These are not generated images or evidence of any study protocol.",
+  "canvas": {
+    "width_pt": 480,
+    "height_pt": 124,
+    "font_pt": 9,
+    "min_font_pt": 8.5
+  },
+  "nodes": [
+    {
+      "id": "heading",
+      "shape": "header",
+      "box": [
+        8,
+        8,
+        464,
+        26
+      ],
+      "label": "Illustrative research workflow with optional icons",
+      "fill": "blue",
+      "text_color": "white",
+      "bold": true,
+      "font_pt": 11
+    },
+    {
+      "id": "records",
+      "box": [
+        8,
+        44,
+        140,
+        44
+      ],
+      "label": "Collect",
+      "detail": "Source records"
+    },
+    {
+      "id": "review",
+      "box": [
+        170,
+        44,
+        140,
+        44
+      ],
+      "label": "Review",
+      "detail": "Quality checks"
+    },
+    {
+      "id": "summary",
+      "box": [
+        332,
+        44,
+        140,
+        44
+      ],
+      "label": "Synthesize",
+      "detail": "Research summary"
+    }
   ],
-  "edges":[
-    {"from":"records","to":"review","points":[[168,99],[204,99]]},
-    {"from":"review","to":"summary","points":[[356,99],[392,99]]}
+  "edges": [
+    {
+      "from": "records",
+      "to": "review",
+      "points": [
+        [
+          148,
+          66
+        ],
+        [
+          170,
+          66
+        ]
+      ]
+    },
+    {
+      "from": "review",
+      "to": "summary",
+      "points": [
+        [
+          310,
+          66
+        ],
+        [
+          332,
+          66
+        ]
+      ]
+    }
   ],
-  "icons":[
-    {"id":"records-symbol","path":"assets/records.png","box":[22,86,24,26],"node":"records","alt":"Stored source records"},
-    {"id":"review-symbol","path":"assets/review.png","box":[210,86,24,26],"node":"review","alt":"Inspection of records"},
-    {"id":"summary-symbol","path":"assets/summary.png","box":[398,86,24,26],"node":"summary","alt":"Written synthesis"}
+  "icons": [
+    {
+      "id": "records-symbol",
+      "path": "assets/records.png",
+      "node": "records",
+      "alt": "Stored source records",
+      "placement": "title",
+      "size_pt": [
+        18,
+        18
+      ],
+      "gap_pt": 4
+    },
+    {
+      "id": "review-symbol",
+      "path": "assets/review.png",
+      "node": "review",
+      "alt": "Inspection of records",
+      "placement": "title",
+      "size_pt": [
+        18,
+        18
+      ],
+      "gap_pt": 4
+    },
+    {
+      "id": "summary-symbol",
+      "path": "assets/summary.png",
+      "node": "summary",
+      "alt": "Written synthesis",
+      "placement": "title",
+      "size_pt": [
+        18,
+        18
+      ],
+      "gap_pt": 4
+    }
   ],
-  "annotations":[{"box":[16,148,528,28],"label":"Illustrative local artwork; adapt the method, symbols and layout to the actual research.","font_pt":8.5}]
+  "annotations": [
+    {
+      "box": [
+        8,
+        96,
+        464,
+        20
+      ],
+      "label": "Illustrative local artwork; adapt the method, symbols and layout to the actual research.",
+      "font_pt": 8.5
+    }
+  ]
 }

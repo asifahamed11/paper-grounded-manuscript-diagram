@@ -1,35 +1,31 @@
 # Contributing
 
-Thanks for helping improve this skill.
+Help make research diagrams clearer, more faithful and easier to reproduce.
 
-## Contribution principles
+## Useful contributions
 
-- Keep the core `SKILL.md` portable and tool-agnostic.
-- Do not add platform-specific tool names as mandatory dependencies.
-- Keep platform-specific setup instructions in `references/platform-compatibility.md`.
-- Do not claim a script can do visual or scientific checks it cannot actually perform.
-- Preserve research integrity, legal access, and figure originality requirements.
-- Prefer small, documented helper scripts with clear error messages.
-- Add or update tests when changing scripts.
+- A minimal example that exposes a spacing, typography, icon-placement or connector problem.
+- A new diagram convention supported by an actual paper/figure locator.
+- A focused renderer fix, meaningful regression test or clearer workflow guidance.
 
-## Before opening a pull request
+## Make a change
 
-Run:
+1. Start from a small public or synthetic example. Keep unpublished research and personal data out of issues, fixtures and previews.
+2. Keep the change focused. Preserve scientific labels and relationships, skill portability and the local-first workflow. New generators, models or hosted services must remain optional.
+3. For rendering changes, run the tests with Matplotlib and Pillow available. Open both full and print-size exports; inspect cutouts on light/dark backgrounds when relevant.
 
-```bash
+```sh
 python -m unittest discover -s tests -v
-python scripts/validate_svg.py --help
-python scripts/score_papers.py --help
-python scripts/extract_pdf_figures.py --help
-python scripts/build_contact_sheet.py --help
+python scripts/render_diagram.py templates/parallel-study.json --output-dir diagram-output --stem method
+python scripts/validate_svg.py diagram-output/method.svg
 ```
 
-## Reporting a problem
+A run that skips optional rendering tests is not a rendering pass. Use the existing project environment or follow [setup guidance](references/platform-compatibility.md).
 
-Include:
-- agent platform and version;
-- operating system and Python version, if relevant;
-- exact command or prompt;
-- expected behavior;
-- actual behavior;
-- a minimal example that does not expose private research data.
+4. Include the problem, resulting behaviour, tests actually run and any remaining limits in your pull request. Add before/after images for a visual change. If an example changes, refresh its README preview from the same source specification.
+
+## Report a bug
+
+Open an issue with the agent/client, OS and Python versions, exact command or prompt, expected behaviour, actual output and a minimal shareable specification. Attach a preview and QA report where possible.
+
+Do not treat a successful script or a high fill metric as proof of scientific correctness or visual quality. Report only checks you actually performed.

@@ -28,6 +28,7 @@ jobs:
           python scripts/render_diagram.py --help
           python scripts/prepare_icon.py --help
           python scripts/render_diagram.py templates/parallel-study.json --check-only
+          python scripts/render_diagram.py templates/parallel-study.json --layout-only
 
   render:
     runs-on: ubuntu-latest

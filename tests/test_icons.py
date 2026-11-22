@@ -52,6 +52,15 @@ class IconSpecTests(unittest.TestCase):
         spec['icons'] = {}
         with self.assertRaises(ValueError):R.validate_spec(spec)
 
+    def test_attached_title_contract_and_unknown_placement(self):
+        data=method();icon=data['icons'][0]
+        icon.update(placement='title',size_pt=[18,18]);icon.pop('box')
+        data['nodes'][0].pop('icon_space_pt')
+        R.validate_spec(data)
+        for change in [{'size_pt':[0,18]},{'gap_pt':-1},{'placement':'unknown'},{'box':[0,0,18,18]}]:
+            candidate=copy.deepcopy(data);candidate['icons'][0].update(change)
+            with self.assertRaises(ValueError):R.validate_spec(candidate)
+
 
 try:
     from PIL import Image, ImageDraw
@@ -183,6 +192,50 @@ class IconRenderTests(unittest.TestCase):
         self.assertTrue(report['passed_geometry_checks'])
         x,y,X,Y = report['icons'][0]['bounds_pt']
         self.assertAlmostEqual((X-x)/(Y-y),2)
+
+    def test_title_cluster_preserves_full_detail_width(self):
+        data=method();data['nodes'][0].update(box=[20,10,140,48],label='Survey',detail='Longitudinal assessment')
+        data['edges'][0]['points'][0]=[125,58]
+        side=self.draw(data)
+        icon=data['icons'][0];icon.update(placement='title',size_pt=[18,18]);icon.pop('box')
+        data['nodes'][0].pop('icon_space_pt')
+        title=self.draw(data)
+        self.assertTrue(title['passed_geometry_checks'],title['errors'])
+        side_detail=next(t for t in side['text'] if t['id']=='records:detail')
+        title_detail=next(t for t in title['text'] if t['id']=='records:detail')
+        self.assertLess(title_detail['text'].count('\n'),side_detail['text'].count('\n'))
+        tb=next(t['bounds_pt'] for t in title['text'] if t['id']=='records:title')
+        ib=title['icons'][0]['bounds_pt']
+        self.assertAlmostEqual(tb[0]-ib[2],4,places=2)
+        self.assertAlmostEqual((tb[1]+tb[3])/2,(ib[1]+ib[3])/2,places=2)
+        self.assertEqual(title['icons'][0]['placement'],'title')
+        self.assertTrue(all(t['font_pt']==9 for t in title['text']))
+        source=self.root/'output/figure-01-source.json'
+        rerun=R.render(json.loads(source.read_text()),self.root/'title-portable',dpi=150,asset_dir=source.parent)
+        self.assertTrue(rerun['passed_geometry_checks'])
+
+    def test_right_and_top_placements_reserve_the_correct_text_area(self):
+        right=method();right['icons'][0].update(placement='right',box=[198,20,22,22])
+        report=self.draw(right);self.assertTrue(report['passed_geometry_checks'],report['errors'])
+        text=report['text'][0]['bounds_pt'];image=report['icons'][0]['bounds_pt']
+        self.assertLess(text[2],image[0])
+        top=method();top['nodes'][0].update(box=[20,10,210,70],icon_space_pt=34)
+        top['icons'][0].update(placement='top',box=[100,17,22,22])
+        top['edges'][0]['points'][0]=[125,80]
+        report=self.draw(top);self.assertTrue(report['passed_geometry_checks'],report['errors'])
+        self.assertGreater(report['text'][0]['bounds_pt'][1],report['icons'][0]['bounds_pt'][3])
+
+    def test_title_icon_with_one_label_and_infeasible_stack(self):
+        data=method();icon=data['icons'][0]
+        icon.update(placement='title',size_pt=[18,18]);icon.pop('box')
+        data['nodes'][0].pop('icon_space_pt')
+        report=self.draw(data);self.assertTrue(report['passed_geometry_checks'],report['errors'])
+        self.assertEqual(report['text'][0]['id'],'records')
+        data['nodes'][0]['detail']='Dates and definitions';icon['size_pt']=[40,40]
+        report=self.draw(data)
+        self.assertFalse(report['passed_geometry_checks'])
+        self.assertTrue(any('Icon/title stack' in e for e in report['errors']))
+        self.assertEqual(report['exports'],[])
 
     def test_icon_resampling_does_not_introduce_dark_ringing(self):
         report = self.draw(method())

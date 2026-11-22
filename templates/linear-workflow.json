@@ -1,18 +1,126 @@
 {
-  "title":"Illustrative sequential workflow",
-  "description":"Demonstration only; replace these generic labels with verified study content.",
-  "canvas":{"width_pt":252,"height_pt":320,"font_pt":9,"min_font_pt":8.5},
-  "nodes":[
-    {"id":"source","shape":"data","box":[26,10,200,44],"label":"Verified source records","fill":"sky_blue"},
-    {"id":"prepare","box":[26,74,200,42],"label":"Prepare and audit inputs"},
-    {"id":"method","box":[26,136,200,42],"label":"Apply the specified method","fill":"white"},
-    {"id":"evaluation","box":[26,198,200,42],"label":"Evaluate with the stated protocol"},
-    {"id":"output","shape":"terminator","box":[26,260,200,42],"label":"Documented outputs","fill":"green","bold":true}
+  "title": "Illustrative sequential workflow",
+  "description": "Demonstration only; replace these generic labels with verified study content.",
+  "canvas": {
+    "width_pt": 224,
+    "height_pt": 200,
+    "font_pt": 9,
+    "min_font_pt": 8.5
+  },
+  "nodes": [
+    {
+      "id": "source",
+      "shape": "data",
+      "box": [
+        8,
+        8,
+        208,
+        30
+      ],
+      "label": "Verified source records",
+      "fill": "sky_blue"
+    },
+    {
+      "id": "prepare",
+      "box": [
+        8,
+        50,
+        208,
+        26
+      ],
+      "label": "Prepare and audit inputs"
+    },
+    {
+      "id": "method",
+      "box": [
+        8,
+        88,
+        208,
+        26
+      ],
+      "label": "Apply the specified method",
+      "fill": "white"
+    },
+    {
+      "id": "evaluation",
+      "box": [
+        8,
+        126,
+        208,
+        26
+      ],
+      "label": "Evaluate with the stated protocol"
+    },
+    {
+      "id": "output",
+      "shape": "terminator",
+      "box": [
+        8,
+        164,
+        208,
+        28
+      ],
+      "label": "Documented outputs",
+      "fill": "green",
+      "bold": true
+    }
   ],
-  "edges":[
-    {"from":"source","to":"prepare","points":[[126,54],[126,74]]},
-    {"from":"prepare","to":"method","points":[[126,116],[126,136]]},
-    {"from":"method","to":"evaluation","points":[[126,178],[126,198]]},
-    {"from":"evaluation","to":"output","points":[[126,240],[126,260]]}
+  "edges": [
+    {
+      "from": "source",
+      "to": "prepare",
+      "points": [
+        [
+          112,
+          38
+        ],
+        [
+          112,
+          50
+        ]
+      ]
+    },
+    {
+      "from": "prepare",
+      "to": "method",
+      "points": [
+        [
+          112,
+          76
+        ],
+        [
+          112,
+          88
+        ]
+      ]
+    },
+    {
+      "from": "method",
+      "to": "evaluation",
+      "points": [
+        [
+          112,
+          114
+        ],
+        [
+          112,
+          126
+        ]
+      ]
+    },
+    {
+      "from": "evaluation",
+      "to": "output",
+      "points": [
+        [
+          112,
+          152
+        ],
+        [
+          112,
+          164
+        ]
+      ]
+    }
   ]
 }

@@ -28,6 +28,7 @@ A figure is complete only after both scientific and visual checks have been perf
 - [ ] Meaning is not encoded by color alone.
 - [ ] Legend, scale bar, north arrow, and notes are present where required.
 - [ ] Figure is balanced and not unnecessarily dense.
+- [ ] No oversized boxes, long empty corridors or excessive outside margins make the layout feel scattered; [density advisories](layout-density.md) have been reviewed without forcing a numerical target.
 - [ ] Figure is understandable without relying on surrounding paragraphs.
 
 When icons are used, follow [icon QA](icon-workflow.md): inspect raw assets, transparent cutouts on light/dark/checkerboard and the final coloured-node/print-size composite. Verify meaning, palette/stroke consistency, no halos/clipping and truthful provenance; generation/model processing and local fixture testing are separate claims.

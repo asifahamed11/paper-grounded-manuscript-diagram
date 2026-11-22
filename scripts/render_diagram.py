@@ -65,6 +65,8 @@ def validate_spec(spec):
         if value < 0 or (key=='line_width_pt' and value==0):raise ValueError(f'style.{key} must be nonnegative, with positive line width')
     if style.get('connector_style','rounded') not in {'rounded','orthogonal'}:
         raise ValueError('connector_style must be rounded or orthogonal')
+    gap=number(style.get('title_detail_gap_pt',3.5),'style.title_detail_gap_pt')
+    if gap < 0:raise ValueError('title_detail_gap_pt must be nonnegative')
     nodes = spec.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         raise ValueError("At least one node is required")
@@ -86,6 +88,8 @@ def validate_spec(spec):
         number(node.get("font_pt", font_size), "node.font_pt")
         if 'detail' in node and (not isinstance(node['detail'],str) or not node['detail'].strip()):
             raise ValueError(f"Node {node['id']} detail must be nonempty text")
+        if node.get('text_layout','stacked') not in {'stacked','bands'}:
+            raise ValueError('node.text_layout must be stacked or bands')
     edge_ids = set()
     edges=spec.get('edges',[])
     if not isinstance(edges,list):raise ValueError('edges must be a list')
@@ -138,16 +142,36 @@ def validate_spec(spec):
         if not isinstance(path, str) or not path or path.startswith('/') or '\\' in path or ':' in path or Path(path).is_absolute() or '..' in Path(path).parts or Path(path).suffix.lower() != '.png':
             raise ValueError('Icon path must be a relative local PNG within the specification directory')
         if not isinstance(icon.get('alt'), str) or not icon['alt'].strip():raise ValueError('Icon alt/meaning is required')
-        x,y,w,h = box(icon.get('box'), 'icon '+icon['id'])
-        if x < 0 or y < 0 or x+w > width or y+h > height:raise ValueError('Icon lies outside the canvas')
+        placement=icon.get('placement','left' if 'node' in icon else 'fixed')
+        if placement not in {'left','right','top','title','fixed'}:raise ValueError('Unknown icon placement')
+        if placement=='title':
+            size=icon.get('size_pt')
+            if not isinstance(size,list) or len(size)!=2 or min(number(v,'icon.size_pt') for v in size)<=0:
+                raise ValueError('Title icons need size_pt: [width, height]')
+            if 'box' in icon:raise ValueError('Title icon position is measured; use size_pt without box')
+            if number(icon.get('gap_pt',4),'icon.gap_pt')<0:raise ValueError('Icon gap must be nonnegative')
+        else:
+            x,y,w,h = box(icon.get('box'), 'icon '+icon['id'])
+            if x < 0 or y < 0 or x+w > width or y+h > height:raise ValueError('Icon lies outside the canvas')
+        if 'node' not in icon and placement!='fixed':raise ValueError('Attached icon placement needs a node')
         if 'node' in icon:
             owner = next((n for n in nodes if n['id'] == icon['node']), None)
             if owner is None:raise ValueError('Icon has unknown node')
+            if placement=='title':
+                if owner.get('shape')=='group':raise ValueError('Title icons are not supported in group frames')
+                if owner.get('text_layout','bands' if 'title_height_pt' in owner else 'stacked')!='stacked':
+                    raise ValueError('Title icon requires stacked text; remove band height or set text_layout to stacked')
+                if sum(i.get('node')==icon['node'] for i in icons)!=1:raise ValueError('Use one attached icon per title cluster')
+                continue
+            if placement=='fixed':raise ValueError('For an attached icon choose left, right, top or title')
             reserve = number(owner.get('icon_space_pt', 0), 'node.icon_space_pt')
             nx,ny,nw,nh = owner['box']
-            if reserve <= 0 or reserve >= nw-10:raise ValueError('Icon owner must reserve label space with icon_space_pt')
-            if not (nx+2 <= x and x+w <= nx+reserve-2 and ny+2 <= y and y+h <= ny+nh-2):
-                raise ValueError('Icon must fit in the reserved left strip of its owner node')
+            limit=nh if placement=='top' else nw
+            if reserve <= 0 or reserve >= limit-10:raise ValueError('Icon owner must reserve label space with icon_space_pt')
+            strips={'left':(nx,ny,reserve,nh),'right':(nx+nw-reserve,ny,reserve,nh),'top':(nx,ny,nw,reserve)}
+            sx,sy,sw,sh=strips[placement]
+            if not (sx+2<=x and x+w<=sx+sw-2 and sy+2<=y and y+h<=sy+sh-2):
+                raise ValueError('Icon must fit in its reserved strip')
     return spec
 
 
@@ -242,6 +266,77 @@ def contrast(fg, bg):
     return (b+.05)/(a+.05)
 
 
+def rectangle_union_area(rectangles):
+    """Exact union of axis-aligned boxes, not coloured-pixel or ink coverage."""
+    if not rectangles:return 0.
+    xs=sorted({x for r in rectangles for x in (r[0],r[2])});area=0.
+    for left,right in zip(xs,xs[1:]):
+        spans=sorted((r[1],r[3]) for r in rectangles if r[0]<right and r[2]>left)
+        covered=0.;bottom=None
+        for top,end in spans:
+            covered+=max(0.,end-max(top,bottom if bottom is not None else top))
+            bottom=max(end,bottom if bottom is not None else end)
+        area+=(right-left)*covered
+    return area
+
+
+def layout_metrics(spec, text_records=None, icon_records=None):
+    """Advisory composition metrics; no universal fill target or layout rewrite."""
+    width,height=spec['canvas']['width_pt'],spec['canvas']['height_pt']
+    def bounds(box):
+        x,y,w,h=box;return (x,y,x+w,y+h)
+    def envelope(rects):
+        return (min(r[0] for r in rects),min(r[1] for r in rects),max(r[2] for r in rects),max(r[3] for r in rects)) if rects else None
+    def area(r):return (r[2]-r[0])*(r[3]-r[1]) if r else 0.
+    nodes=[n for n in spec['nodes'] if n.get('shape') not in {'group','header'}]
+    body=[bounds(n['box']) for n in nodes];body_envelope=envelope(body)
+    all_rects=[bounds(n['box']) for n in spec['nodes']]+[bounds(n['box']) for n in spec.get('annotations',[])]+[bounds(n['box']) for n in spec.get('icons',[]) if 'box' in n]
+    # Include routed feedback/interpretation corridors in outside margins.
+    for edge in spec.get('edges',[]):
+        xs,ys=zip(*edge['points']);all_rects.append((min(xs),min(ys),max(xs),max(ys)))
+    outer=envelope(all_rects)
+    union=rectangle_union_area(body)
+    fill=union/area(body_envelope) if area(body_envelope) else None
+    gaps=[];close=[]
+    for i,a in enumerate(body):
+        nearest=None
+        for j,b in enumerate(body):
+            if i==j:continue
+            distance=math.hypot(max(a[0]-b[2],b[0]-a[2],0),max(a[1]-b[3],b[1]-a[3],0))
+            nearest=distance if nearest is None else min(nearest,distance)
+            if j>i and distance<6:close.append({'nodes':[nodes[i]['id'],nodes[j]['id']],'gap_pt':round(distance,2)})
+        if nearest is not None:gaps.append(nearest)
+    ordered=sorted(gaps)
+    median_gap=(ordered[(len(ordered)-1)//2]+ordered[len(ordered)//2])/2 if ordered else None
+    advisory=[]
+    if fill is not None and len(body)>1 and fill<.42:
+        advisory.append('Main node boxes occupy less than 42% of their envelope; review empty lanes/corridors. Branch/association diagrams may need this space.')
+    if median_gap is not None and median_gap>24:
+        advisory.append('Typical nearest-node gap exceeds 24 pt; review long connectors and row/column spacing.')
+    if close:advisory.append('Some node gaps are below 6 pt; review crowding, arrowheads and label clearance.')
+    margins={'left':outer[0],'top':outer[1],'right':width-outer[2],'bottom':height-outer[3]} if outer else {}
+    if any(v>max(12,.08*(width if k in {'left','right'} else height)) for k,v in margins.items()):
+        advisory.append('Outside margin is large relative to this canvas; review content-first sizing within venue dimensions.')
+    content=[]
+    if text_records is not None:
+        for node,rect in zip(nodes,body):
+            parts=[t['bounds_pt'] for t in text_records if t.get('node_id')==node['id']]
+            parts += [i['bounds_pt'] for i in (icon_records or []) if i.get('node_id')==node['id']]
+            env=envelope(parts);ratio=area(env)/area(rect) if env else 0.
+            content.append({'node':node['id'],'shape':node.get('shape','process'),'content_envelope_fraction':round(ratio,4)})
+        # A decision's wings are semantic geometry; a short question in a
+        # readable inscribed rectangle does not make its diamond oversized.
+        oversized=[r['node'] for r in content if r['shape']!='decision' and r['content_envelope_fraction']<.12]
+        if oversized:advisory.append('Review oversized boxes around short labels: '+', '.join(oversized)+'. Preserve comparable widths and semantic-shape padding when useful.')
+    return {'definition':'Box occupancy and spacing diagnostics, not ink coverage, aesthetic score or a universal target',
+            'main_box_canvas_fraction':round(union/(width*height),4),
+            'main_box_envelope_fraction':round(fill,4) if fill is not None else None,
+            'content_bounds_pt':list(outer) if outer else None,'outside_margins_pt':margins,
+            'median_nearest_node_gap_pt':round(median_gap,2) if median_gap is not None else None,
+            'crowded_pairs':close,'node_content':content,'advisories':advisory,
+            'automatic_layout_changes':'none; labels may use the compact stacked text default'}
+
+
 def bleed_transparent_rgb(image):
     """Extend nearest edge RGB into zero-alpha pixels without changing alpha.
 
@@ -297,7 +392,8 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
             'font_requested':requested_font,'font_used':font,'matplotlib':matplotlib.__version__,
             'physical_inches':[width/72,height/72],'png_dpi':dpi,'errors':[],
             'warnings':[],'text':[],'icons':[],'exports':[],
-            'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width},
+            'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width,
+                     'title_detail_gap_pt':design.get('title_detail_gap_pt',3.5)},
             'edge_geometry_check':'16 samples per quadratic corner; visual review remains required'}
     if font != requested_font:report['warnings'].append(f'Font unavailable; substituted {font}')
     rc={'font.family':font,'svg.fonttype':'none','pdf.fonttype':42,'savefig.facecolor':'white','svg.image_inline':True}
@@ -335,7 +431,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     ax.add_patch(patch)
                 shape_paths[n['id']]=[patch.get_path()]
                 if shape=='data':shape_paths[n['id']].append(cap.get_path().transformed(cap.get_patch_transform()))
-            placed_icons=[]
+            placed_icons=[];icon_artists={}
             for icon in spec.get('icons', []):
                 from PIL import Image
                 root_dir=Path(asset_dir or '.').resolve()
@@ -351,30 +447,27 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                 if any(alpha.crop(b).getbbox() for b in [(0,0,image.width,1),(0,image.height-1,image.width,image.height),
                                                          (0,0,1,image.height),(image.width-1,0,image.width,image.height)]):
                     raise ValueError('Icon border must be transparent; prepare/crop with margin: '+icon['id'])
-                x,y,w,h=icon['box'];scale=min(w/image.width,h/image.height)
+                placement=icon.get('placement','left' if 'node' in icon else 'fixed')
+                if placement=='title':
+                    nx,ny,nw,nh=nodes[icon['node']]['box'];w,h=icon['size_pt']
+                    x,y=nx+(nw-w)/2,ny+(nh-h)/2  # resolved with measured title below
+                else:x,y,w,h=icon['box']
+                scale=min(w/image.width,h/image.height)
                 iw,ih=image.width*scale,image.height*scale
                 x+=(w-iw)/2;y+=(h-ih)/2
                 bounds=(x,y,x+iw,y+ih)
                 native_dpi=72/scale
                 if native_dpi < 300:report['errors'].append(f'Icon {icon["id"]} has only {native_dpi:.0f} native DPI; use a larger source or smaller placement')
                 if min(iw,ih)<12:report['warnings'].append(f'Icon {icon["id"]} is smaller than 12 pt; inspect at print size')
-                for n in spec['nodes']:
-                    if n.get('shape')=='group':continue
-                    nx,ny,nw,nh=n['box']
-                    if n['id']==icon.get('node'):
-                        if not all(any(p.contains_point(pt) for p in shape_paths[n['id']]) for pt in [(x,y),(x+iw,y),(x,y+ih),(x+iw,y+ih)]):
-                            report['errors'].append(f'Icon {icon["id"]} leaves its actual node silhouette')
-                    elif intersects(bounds,(nx,ny,nx+nw,ny+nh)):
-                        report['errors'].append(f'Icon {icon["id"]} overlaps unrelated node {n["id"]}')
-                for other,ob,_,_ in placed_icons:
-                    if intersects(bounds,ob):report['errors'].append(f'Icons overlap: {other["id"]} / {icon["id"]}')
                 # A non-ringing filter keeps a clean icon silhouette when a large
                 # transparent source is reduced to print size. Lanczos can create
                 # dark/white ripples at high-contrast alpha boundaries in Agg.
-                ax.imshow(bleed_transparent_rgb(image),extent=(x,x+iw,y+ih,y),origin='upper',aspect='auto',
+                artist=ax.imshow(bleed_transparent_rgb(image),extent=(x,x+iw,y+ih,y),origin='upper',aspect='auto',
                           interpolation='hanning',interpolation_stage='rgba',zorder=4)
-                placed_icons.append((icon,bounds,source,image))
+                icon_artists[icon['id']]=artist
+                placed_icons.append([icon,bounds,source,image])
                 report['icons'].append({'id':icon['id'],'alt':icon['alt'],'path':icon['path'],
+                    'node_id':icon.get('node'),'placement':placement,
                     'sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'native_size_px':list(image.size),
                     'bounds_pt':list(bounds),'native_dpi':round(native_dpi,2),'background_review':'pending human inspection'})
             report['resolved_ports']=[]
@@ -437,13 +530,69 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                 ratio=contrast(color(record.get('text_color','black')),color(record.get('fill','white')))
                 if ratio < 4.5:report['errors'].append(f'Label {identifier} contrast is {ratio:.2f}, below 4.5')
                 labels.append((identifier,b,text))
-                report['text'].append({'id':identifier,'text':wrapped,'font_pt':size,'bounds_pt':list(b),'contrast':round(ratio,3)})
+                report['text'].append({'id':identifier,'node_id':record.get('id'),'text':wrapped,'font_pt':size,'bounds_pt':list(b),'contrast':round(ratio,3)})
+            def content_box(n):
+                x,y,w,h=n['box'];pad=n.get('padding_pt',5);shape=n.get('shape','process')
+                if shape=='decision':x+=w/4;y+=h/4;w/=2;h/=2
+                left=max(pad,10 if shape=='input' else 6 if shape=='data' else pad)
+                top=max(pad,8 if shape=='data' else pad)
+                inner=[x+left,y+top,w-2*left,h-top-pad]
+                if min(inner[2:])<=0:raise ValueError('Node too small for compact title/detail text')
+                return inner
+            def move_label(j,cx,cy):
+                identifier,_,artist=labels[j];artist.set_position((cx,cy))
+                fig.canvas.draw();b=artist.get_window_extent(fig.canvas.get_renderer()).transformed(ax.transData.inverted())
+                measured=(min(b.x0,b.x1),min(b.y0,b.y1),max(b.x0,b.x1),max(b.y0,b.y1))
+                labels[j]=(identifier,measured,artist);report['text'][j]['bounds_pt']=list(measured)
             for n in spec['nodes']:
-                if any(icon.get('node')==n['id'] for icon in spec.get('icons',[])):
-                    n=copy.deepcopy(n);x,y,w,h=n['box'];reserve=n['icon_space_pt']
-                    n['box']=[x+reserve,y,w-reserve,h]
+                attached=[(j,i) for j,i in enumerate(spec.get('icons',[])) if i.get('node')==n['id']]
+                if attached and attached[0][1].get('placement')=='title':
+                    j,icon=attached[0];inner=content_box(n)
+                    _,bounds,_,_=placed_icons[j];iw,ih=bounds[2]-bounds[0],bounds[3]-bounds[1]
+                    gap=icon.get('gap_pt',4);tw=inner[2]-iw-gap
+                    if tw<=0:raise ValueError('No room for title beside icon; choose another placement')
+                    start=len(labels)
+                    title_record=dict(n,box=[inner[0],inner[1],tw,inner[3]],shape='process',
+                                      bold=True if 'detail' in n else n.get('bold',False),padding_pt=0)
+                    add_label(title_record,n['id']+':title' if 'detail' in n else n['id'])
+                    tb=labels[start][1];title_w,title_h=tb[2]-tb[0],tb[3]-tb[1]
+                    row_h=max(title_h,ih);detail_h=0.;stack_gap=design.get('title_detail_gap_pt',3.5) if 'detail' in n else 0.
+                    if 'detail' in n:
+                        add_label(dict(n,box=inner,shape='process',label=n['detail'],bold=False,padding_pt=0,
+                                       font_pt=n.get('detail_font_pt',base)),n['id']+':detail')
+                        db=labels[start+1][1];detail_h=db[3]-db[1]
+                    total=row_h+stack_gap+detail_h
+                    if total>inner[3]+.01:report['errors'].append(f'Icon/title stack {n["id"]} overflows; compare side placement or reflow the node')
+                    top=inner[1]+(inner[3]-total)/2;left=inner[0]+(inner[2]-iw-gap-title_w)/2
+                    move_label(start,left+iw+gap+title_w/2,top+row_h/2)
+                    if 'detail' in n:move_label(start+1,inner[0]+inner[2]/2,top+row_h+stack_gap+detail_h/2)
+                    image_top=top+(row_h-ih)/2;resolved=(left,image_top,left+iw,image_top+ih)
+                    placed_icons[j][1]=resolved;report['icons'][j]['bounds_pt']=list(resolved)
+                    icon_artists[icon['id']].set_extent((left,left+iw,image_top+ih,image_top))
+                    continue
+                if attached:
+                    mode=attached[0][1].get('placement','left');n=copy.deepcopy(n);x,y,w,h=n['box'];reserve=n['icon_space_pt']
+                    n['box']={'left':[x+reserve,y,w-reserve,h],'right':[x,y,w-reserve,h],'top':[x,y+reserve,w,h-reserve]}[mode]
                 if 'detail' not in n or n.get('shape')=='group':
                     add_label(n,n['id']);continue
+                # Keep title and explanation together as one centred content stack,
+                # rather than centring them in arbitrarily tall separate bands.
+                # Existing explicit band heights retain their older behaviour.
+                if n.get('text_layout','bands' if 'title_height_pt' in n else 'stacked')=='stacked':
+                    inner=content_box(n)
+                    start=len(labels)
+                    add_label(dict(n,box=inner,shape='process',bold=True,padding_pt=0),n['id']+':title')
+                    add_label(dict(n,box=inner,shape='process',label=n['detail'],bold=False,padding_pt=0,
+                                   font_pt=n.get('detail_font_pt',base)),n['id']+':detail')
+                    heights=[labels[j][1][3]-labels[j][1][1] for j in (start,start+1)]
+                    gap=design.get('title_detail_gap_pt',3.5);total=sum(heights)+gap
+                    if total>inner[3]+.01:
+                        report['errors'].append(f'Combined title/detail {n["id"]} overflows; enlarge/reflow the node')
+                    cursor=inner[1]+(inner[3]-total)/2
+                    for j,lh in zip((start,start+1),heights):
+                        move_label(j,inner[0]+inner[2]/2,cursor+lh/2)
+                        cursor+=lh+gap
+                    continue
                 x,y,w,h=n['box'];split=n.get('title_height_pt',22 if n.get('shape')=='data' else 18)
                 if not 0 < split < h:
                     raise ValueError(f"Node {n['id']} title_height_pt must lie within its box")
@@ -469,7 +618,18 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                 for label,b,_ in labels:
                     if any(segment_hits(a,z,b) for a,z in zip(samples,samples[1:])):
                         report['errors'].append(f'Edge {e.get("id",i)} crosses label {label}')
-            for icon,bounds,_,_ in placed_icons:
+            for i,(icon,bounds,_,_) in enumerate(placed_icons):
+                x,y,X,Y=bounds
+                for n in spec['nodes']:
+                    if n.get('shape')=='group':continue
+                    nx,ny,nw,nh=n['box']
+                    if n['id']==icon.get('node'):
+                        if not all(any(p.contains_point(pt) for p in shape_paths[n['id']]) for pt in [(x,y),(X,y),(x,Y),(X,Y)]):
+                            report['errors'].append(f'Icon {icon["id"]} leaves its actual node silhouette')
+                    elif intersects(bounds,(nx,ny,nx+nw,ny+nh)):
+                        report['errors'].append(f'Icon {icon["id"]} overlaps unrelated node {n["id"]}')
+                for other,ob,_,_ in placed_icons[i+1:]:
+                    if intersects(bounds,ob):report['errors'].append(f'Icons overlap: {other["id"]} / {icon["id"]}')
                 for label,b,_ in labels:
                     if intersects(bounds,b):report['errors'].append(f'Icon {icon["id"]} overlaps label {label}')
                 for i,(e,samples) in enumerate(routes):
@@ -483,6 +643,8 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     X,Y,W,H=b['box']
                     if intersects((x,y,x+w,y+h),(X,Y,X+W,Y+H),gap=.25):
                         report['errors'].append(f'Nodes overlap: {a["id"]} / {b["id"]}')
+            report['layout']=layout_metrics(spec,report['text'],report['icons'])
+            report['warnings']+=report['layout']['advisories']
             report['errors']=list(dict.fromkeys(report['errors']))
             report['passed_geometry_checks']=not report['errors']
             if not report['errors']:
@@ -531,12 +693,15 @@ def main():
     p.add_argument('spec',type=Path);p.add_argument('--output-dir',type=Path,default=Path('diagram-output'))
     p.add_argument('--stem',default='figure-01');p.add_argument('--dpi',type=int,default=600)
     p.add_argument('--check-only',action='store_true',help='Validate the specification without Matplotlib or exports')
+    p.add_argument('--layout-only',action='store_true',help='Report box occupancy/spacing without packages, rendering or changing the source')
     args=p.parse_args()
     try:
         spec=json.loads(args.spec.read_text(encoding='utf-8-sig'));validate_spec(spec)
+        if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
         if args.check_only:print('Specification valid; rendering and visual review have not run.');return 0
         report=render(spec,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
+                          'layout_advisories':report['layout']['advisories'],
                           'visual_review':report['visual_review'],'exports':report['exports']},indent=2))
         return 0 if report['passed_geometry_checks'] else 1
     except (ValueError,OSError,ImportError) as exc:

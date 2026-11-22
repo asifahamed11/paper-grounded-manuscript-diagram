@@ -62,16 +62,29 @@ These are candidate tools, not a benchmark ranking. Compare the actual icon on w
 
 Use transparent PNG assets, or retain a native vector original when available. Crop only exterior empty space; keep all meaningful strokes, soft alpha and a small safety margin. Match **optical** size and visual weight across the set; equal file dimensions alone do not do that. Keep icon colours consistent with lane/role colours and do not use colour alone to carry meaning. Labels remain authoritative; an icon must not replace a required methodological label.
 
+### Find the position, not a compulsory icon column
+
+Start with the readable icon-free layout. Do not widen every node or reserve a tall left strip simply because an icon exists. Consider:
+
+| Candidate | Works well when | Watch for |
+|---|---|---|
+| Beside the title | A small recognisable symbol and short title can form one compact row | Long titles or tall symbols may need a side position. Details should retain the full width. |
+| Left or right of the content stack | The icon is portrait-shaped, the title is long, or several text lines share one symbol | A wide empty strip, extra line wrapping or inconsistent optical alignment. |
+| Above the text | The symbol is an important visual anchor and the node has a deliberate vertical composition | Unnecessary height and a sparse poster-like tile. |
+| No icon | The symbol adds little or every candidate weakens the method diagram | Do not add decoration to fill a numerical target. Honour an explicit user requirement for icons by reflowing instead. |
+
+If the position is uncertain or the icon reduces useful fill, render two or three plausible candidates with the same labels, font sizes and icon family. Discard clipping, overlap or minimum-font failures. Compare extra wraps, required box/canvas growth, unused icon-strip space and optical balance at print size. Prefer the compact readable candidate, not the one with the largest icon or a colour-filled box. Use consistent placement for comparable nodes unless their content justifies a difference. Save a short candidate/choice note with the QA files. The agent makes this design choice; the renderer checks a chosen layout and does not claim a universal aesthetic optimiser.
+
 The bundled renderer accepts an optional top-level `icons` list:
 
 ```json
 "icons": [
-  {"id":"records-symbol", "path":"assets/records.png",
-   "box":[28,58,24,24], "node":"records", "alt":"Stored records"}
+  {"id":"records-symbol", "path":"assets/records.png", "node":"records",
+   "placement":"title", "size_pt":[18,18], "gap_pt":4, "alt":"Stored records"}
 ]
 ```
 
-Paths are relative to the JSON specification directory and must stay inside it. In-node placement requires `icon_space_pt` on that node, reserving a left-hand strip; for example, a node at `[20,46,220,48]` can reserve 40 points. The title and detail automatically use the remaining text area. Standalone icons may omit `node`; create space for them explicitly. The renderer fits without stretching, checks native resolution (at least 300 DPI at final placement), node/label/connector collisions, and embeds the PNG in SVG/PDF. See [rendering](rendering.md) for the full contract. Its vector exports contain **raster icons**, not magically vectorised artwork. A venue demanding wholly vector artwork needs native vector symbols instead.
+Paths are relative to the JSON specification directory and must stay inside it. `placement: "title"` measures and centres an icon/title cluster, with full-width detail underneath; it requires `size_pt` instead of a fixed `box`, one attached icon for that node and stacked text. It does not reserve an empty column across the detail lines. For `left`, `right` or `top`, give an explicit `box` and `icon_space_pt` on the node to reserve the corresponding strip. Old in-node records without a placement retain left-strip behaviour. Standalone fixed icons omit `node` and retain an explicit box. The renderer fits without stretching, checks native resolution (at least 300 DPI at final placement), node/label/connector collisions, and embeds the PNG in SVG/PDF. It records resolved positions and the selected mode in QA. See [rendering](rendering.md) for the full contract. Its vector exports contain **raster icons**, not magically vectorised artwork. A venue demanding wholly vector artwork needs native vector symbols instead.
 
 Inspect raw image, prepared cutout, a coloured-node composite, full figure and actual print-size figure. Check halos, white rectangles, jagged edges, missing interior features, unintended detached marks, recognisability and palette/weight consistency. A successful mask/geometry check does not prove semantic correctness or visual quality.
 
