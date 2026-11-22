@@ -1,0 +1,35 @@
+figure:
+  title: ""
+  purpose: ""
+  manuscript_section: ""
+  diagram_type: "" # flowchart | methodology | architecture | conceptual | study-area-map | graphical-abstract | other
+  audience: ""
+  target_journal: ""
+  target_dimensions: ""
+  output_formats:
+    - svg
+    - pdf
+    - png
+content:
+  verified_inputs: []
+  verified_stages: []
+  verified_outputs: []
+  relationships: []
+  labels_and_abbreviations: []
+  unsupported_or_unknown_items: []
+design:
+  palette: "Okabe-Ito"
+  shape_style: "rounded process shapes; semantic shapes where required"
+  background: "white"
+  font_family: "readable sans-serif"
+  reading_direction: "left-to-right"
+  legend_required: false
+  map_elements: []
+literature:
+  target_full_text_papers: 5
+  papers_downloaded_and_inspected: 0
+  paper_records: []
+quality:
+  scientific_review: "pending"
+  visual_review: "pending"
+  export_review: "pending"

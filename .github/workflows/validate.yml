@@ -1,0 +1,24 @@
+name: Validate skill package
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run helper tests
+        run: python -m unittest discover -s tests -v
+      - name: Check helper command interfaces
+        run: |
+          python scripts/score_papers.py --help
+          python scripts/extract_pdf_figures.py --help
+          python scripts/build_contact_sheet.py --help
+          python scripts/validate_svg.py --help

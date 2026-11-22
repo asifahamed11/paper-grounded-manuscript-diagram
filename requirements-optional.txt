@@ -1,0 +1,4 @@
+# Optional dependencies for helper scripts.
+# The core SKILL.md does not require Python packages.
+PyMuPDF>=1.24
+Pillow>=10.0

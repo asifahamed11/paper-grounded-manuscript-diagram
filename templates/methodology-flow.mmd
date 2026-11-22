@@ -1,0 +1,16 @@
+flowchart LR
+    A([Research input]) --> B("Data acquisition")
+    B --> C("Preprocessing")
+    C --> D("Proposed method")
+    D --> E("Evaluation")
+    E --> F([Verified output])
+
+    classDef input fill:#E1F2FA,stroke:#0072B2,color:#000,stroke-width:1.5px;
+    classDef process fill:#DDF2EB,stroke:#009E73,color:#000,stroke-width:1.5px;
+    classDef method fill:#FFF1D6,stroke:#E69F00,color:#000,stroke-width:1.5px;
+    classDef output fill:#F3E2ED,stroke:#CC79A7,color:#000,stroke-width:1.5px;
+
+    class A input;
+    class B,C,E process;
+    class D method;
+    class F output;
