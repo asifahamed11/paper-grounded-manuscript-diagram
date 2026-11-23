@@ -21,7 +21,10 @@
       "fill": "blue",
       "text_color": "white",
       "bold": true,
-      "font_pt": 10
+      "font_pt": 10,
+      "stroke_color": "#005A8D",
+      "align": "left",
+      "padding_pt": 5
     },
     {
       "id": "exposure",
@@ -34,7 +37,9 @@
       ],
       "label": "Reported exposure",
       "detail": "Prespecified measure",
-      "fill": "sky_blue"
+      "fill": "#EAF4FA",
+      "stroke_color": "#5B96B4",
+      "text_color": "#172D3C"
     },
     {
       "id": "context",
@@ -45,7 +50,8 @@
         42
       ],
       "label": "Contextual factors",
-      "detail": "Potential covariates"
+      "detail": "Potential covariates",
+      "text_color": "#172D3C"
     },
     {
       "id": "outcome",
@@ -57,7 +63,9 @@
       ],
       "label": "Observed outcome",
       "detail": "Prespecified measure",
-      "fill": "orange"
+      "fill": "orange",
+      "stroke_color": "#A97100",
+      "text_color": "black"
     }
   ],
   "edges": [
@@ -121,7 +129,14 @@
         28
       ],
       "label": "Dashed lines indicate associations; no causal effects are asserted.",
-      "font_pt": 8.5
+      "font_pt": 8.5,
+      "text_color": "#385365"
     }
-  ]
+  ],
+  "style": {
+    "stroke_color": "#879AA6",
+    "connector_color": "#486170",
+    "line_width_pt": 0.82,
+    "title_detail_gap_pt": 3.2
+  }
 }

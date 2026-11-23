@@ -116,6 +116,8 @@ For each paper, record:
 
 Citation counts differ across databases and change over time. Phrase claims carefully, e.g. "OpenAlex reported N citations on YYYY-MM-DD." Do not say "the most cited paper" unless the comparison scope and source are explicit.
 
+Use the scorer's usual mode for discovery. After opening comparable figures, set `figure_inspected` and give the actual `figure_locator`. Run `python scripts/score_papers.py candidates.csv --reviewed-only` to order that inspected subset by figure fit. Record which convention each selected figure informed.
+
 ## 6. Figure relevance
 
 Do not inspect every figure indiscriminately. Prioritize:

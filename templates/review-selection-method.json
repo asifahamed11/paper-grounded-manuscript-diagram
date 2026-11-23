@@ -1,0 +1,41 @@
+{
+  "title": "Study selection in a systematic review",
+  "description": "An authoring example showing the screening, retrieval and eligibility stages of the PRISMA 2020 study selection workflow. The main path is on the left, with documented exits on the right.",
+  "canvas": {"width_pt": 348, "font_pt": 9, "min_font_pt": 8.5},
+  "lanes": ["selection", "recorded exits"],
+  "sources": [
+    {
+      "id": "prisma-selection",
+      "kind": "method",
+      "title": "Page et al. (2021), The PRISMA 2020 statement",
+      "locator": "Figure 1, database and register screening and inclusion stages",
+      "doi": "10.1136/bmj.n71",
+      "url": "https://www.bmj.com/content/372/bmj.n71"
+    },
+    {
+      "id": "prisma-reporting",
+      "kind": "method",
+      "title": "Page et al. (2021), PRISMA 2020 explanation and elaboration",
+      "locator": "Study selection, item 16a",
+      "doi": "10.1136/bmj.n160",
+      "url": "https://www.bmj.com/content/372/bmj.n160"
+    }
+  ],
+  "nodes": [
+    {"id": "screen", "lane": "selection", "label": "Screen records", "detail": "Review titles and abstracts", "fill": "#D9ECF7", "stroke_color": "blue", "source_refs": ["prisma-reporting"]},
+    {"id": "retrieve", "lane": "selection", "label": "Seek reports", "detail": "Obtain full text", "source_refs": ["prisma-selection"]},
+    {"id": "screen-out", "lane": "recorded exits", "label": "Excluded at screening", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-selection"]},
+    {"id": "assess", "lane": "selection", "shape": "decision", "label": "Eligible?", "fill": "orange", "stroke_color": "#936600", "source_refs": ["prisma-selection"]},
+    {"id": "unavailable", "lane": "recorded exits", "label": "Reports not retrieved", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-selection"]},
+    {"id": "include", "lane": "selection", "shape": "terminator", "label": "Include studies", "detail": "Record associated reports", "fill": "green", "source_refs": ["prisma-selection"]},
+    {"id": "exclude", "lane": "recorded exits", "label": "Exclude reports", "detail": "Document reasons", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-reporting"]}
+  ],
+  "edges": [
+    {"id": "seek", "from": "screen", "to": "retrieve", "source_refs": ["prisma-selection"]},
+    {"id": "screening-exit", "from": "screen", "to": "screen-out", "source_refs": ["prisma-selection"]},
+    {"id": "assess-retrieved", "from": "retrieve", "to": "assess", "source_refs": ["prisma-selection"]},
+    {"id": "retrieval-exit", "from": "retrieve", "to": "unavailable", "source_refs": ["prisma-selection"]},
+    {"id": "eligible", "from": "assess", "to": "include", "label": "Yes", "source_refs": ["prisma-selection"]},
+    {"id": "ineligible", "from": "assess", "to": "exclude", "label": "No", "source_refs": ["prisma-selection", "prisma-reporting"]}
+  ]
+}

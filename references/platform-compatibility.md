@@ -54,13 +54,16 @@ Map the skill's capabilities to whatever the current platform provides:
 | Figure inspection | Image viewer, browser PDF renderer, screenshot capability |
 | Optional icon generation | Host-provided image generator when available and authorised; otherwise local/permitted assets or an icon-free diagram |
 | Icon preparation | Local Pillow helper; a reviewed local segmentation mask for complex backgrounds; no automatic weights or cloud removal |
-| Diagram authoring | Bundled local Matplotlib renderer or SVG; Mermaid/Graphviz for topology sketches; native draw.io/PowerPoint when requested |
+| Diagram authoring | Bundled method planner and Matplotlib renderer. Custom files can use a manual layout, standalone SVG or the user's editor. |
+| Native editing | Use `--drawio` to export editable diagrams.net nodes and connections. Open the file in [draw.io Desktop](https://www.drawio.com/docs/manual/editor/offline/). |
 | GIS mapping | QGIS, GeoPandas, GIS connector |
 | Export and QA | SVG/PDF renderer, image viewer, file inspection tools |
 
 These are examples. Do not assume any specific integration exists.
 
 The bundled renderer's `--check-only` works with the Python standard library. Actual SVG/PDF/PNG output needs Matplotlib; icon preparation/placement and contact-sheet checks need Pillow; PDF inspection needs PyMuPDF. Reuse an existing project interpreter, and do not install packages automatically. See [the icon workflow](icon-workflow.md) only when icons are useful; generation and model inference are independent optional capabilities. `agents/openai.yaml` supplies optional Codex UI metadata, not a universal plugin or proof that the host discovered the skill.
+
+Run `python scripts/plan_diagram.py --doctor` in the environment you will use. To verify a first export, follow [the small public-method example](method-to-figure.md). The bundled workflow can run locally after the free dependencies are installed.
 
 ## Security
 

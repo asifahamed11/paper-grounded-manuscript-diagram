@@ -75,6 +75,10 @@ Use a compact, balanced layout by default. Fit the canvas to the organised conte
 
 ## 7. Visual tone
 
+Draw the reading order before deciding the shapes. Arrange the primary method as one continuous path with short, clear connectors. Give peer branches the same level of emphasis. Keep exceptions to one side when their roles support it. Use an edge label where two choices would otherwise be ambiguous.
+
+For a small print figure, start with a white page, dark text and clear Okabe–Ito accents. Use solid accents or tints according to the role, importance and legibility of each element. Keep important panel colours visible at print size. Give every frame, icon and colour a specific job. Keep comparable gaps consistent, preserve enough space for branches and let typography lead the reading order. Use the source's terminology and read the final lines at the intended width.
+
 Aim for:
 - precise;
 - restrained;

@@ -19,7 +19,9 @@
       ],
       "label": "Candidate records",
       "detail": "Documented sources",
-      "fill": "sky_blue"
+      "fill": "sky_blue",
+      "stroke_color": "#237399",
+      "text_color": "#102A3A"
     },
     {
       "id": "audit",
@@ -30,7 +32,8 @@
         28
       ],
       "label": "Apply eligibility criteria",
-      "bold": true
+      "bold": true,
+      "text_color": "#172D3C"
     },
     {
       "id": "decision",
@@ -42,7 +45,10 @@
         64
       ],
       "label": "Eligible?",
-      "bold": true
+      "bold": true,
+      "text_color": "black",
+      "fill": "orange",
+      "stroke_color": "#936600"
     },
     {
       "id": "excluded",
@@ -53,7 +59,8 @@
         40
       ],
       "label": "Document exclusions",
-      "detail": "Record the reasons"
+      "detail": "Record the reasons",
+      "text_color": "#172D3C"
     },
     {
       "id": "included",
@@ -64,7 +71,8 @@
         40
       ],
       "label": "Primary analysis",
-      "detail": "Eligible records only"
+      "detail": "Eligible records only",
+      "text_color": "#172D3C"
     },
     {
       "id": "summary",
@@ -77,7 +85,9 @@
       ],
       "label": "Audit summary",
       "fill": "green",
-      "bold": true
+      "bold": true,
+      "stroke_color": "#007655",
+      "text_color": "black"
     }
   ],
   "edges": [
@@ -199,7 +209,8 @@
         18
       ],
       "label": "No",
-      "padding_pt": 2
+      "padding_pt": 2,
+      "text_color": "#385365"
     },
     {
       "box": [
@@ -209,7 +220,14 @@
         18
       ],
       "label": "Yes",
-      "padding_pt": 2
+      "padding_pt": 2,
+      "text_color": "#385365"
     }
-  ]
+  ],
+  "style": {
+    "stroke_color": "#879AA6",
+    "connector_color": "#486170",
+    "line_width_pt": 0.82,
+    "title_detail_gap_pt": 3.2
+  }
 }

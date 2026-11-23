@@ -26,6 +26,7 @@ jobs:
           python scripts/build_contact_sheet.py --help
           python scripts/validate_svg.py --help
           python scripts/render_diagram.py --help
+          python scripts/plan_diagram.py --help
           python scripts/prepare_icon.py --help
           python scripts/render_diagram.py templates/parallel-study.json --check-only
           python scripts/render_diagram.py templates/parallel-study.json --layout-only
@@ -51,3 +52,8 @@ jobs:
           python scripts/validate_svg.py diagram-output/conceptual.svg
           python scripts/render_diagram.py templates/icon-workflow/diagram.json --output-dir diagram-output --stem icons
           python scripts/validate_svg.py diagram-output/icons.svg
+      - name: Build a figure directly from sourced method stages
+        run: |
+          python scripts/plan_diagram.py --doctor
+          python scripts/plan_diagram.py templates/review-selection-method.json --output-dir diagram-output --stem selection --drawio --tiff --require-sources
+          python scripts/validate_svg.py diagram-output/selection.svg

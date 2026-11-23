@@ -18,7 +18,9 @@
         30
       ],
       "label": "Verified source records",
-      "fill": "sky_blue"
+      "fill": "sky_blue",
+      "stroke_color": "#237399",
+      "text_color": "#102A3A"
     },
     {
       "id": "prepare",
@@ -28,7 +30,8 @@
         208,
         26
       ],
-      "label": "Prepare and audit inputs"
+      "label": "Prepare and audit inputs",
+      "text_color": "#172D3C"
     },
     {
       "id": "method",
@@ -39,7 +42,8 @@
         26
       ],
       "label": "Apply the specified method",
-      "fill": "white"
+      "fill": "white",
+      "text_color": "#172D3C"
     },
     {
       "id": "evaluation",
@@ -49,7 +53,8 @@
         208,
         26
       ],
-      "label": "Evaluate with the stated protocol"
+      "label": "Evaluate with the stated protocol",
+      "text_color": "#172D3C"
     },
     {
       "id": "output",
@@ -62,7 +67,9 @@
       ],
       "label": "Documented outputs",
       "fill": "green",
-      "bold": true
+      "bold": true,
+      "stroke_color": "#007655",
+      "text_color": "black"
     }
   ],
   "edges": [
@@ -122,5 +129,11 @@
         ]
       ]
     }
-  ]
+  ],
+  "style": {
+    "stroke_color": "#879AA6",
+    "connector_color": "#486170",
+    "line_width_pt": 0.82,
+    "title_detail_gap_pt": 3.2
+  }
 }

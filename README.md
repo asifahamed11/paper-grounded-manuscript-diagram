@@ -1,8 +1,8 @@
 # Paper-Grounded Manuscript Diagram
 
-**Turn research methods into clear, editable diagrams.**
+Create editable manuscript diagrams from a research method. Start with the stages and relationships, choose the intended print width, and review a measured layout before export.
 
-A portable Agent Skill for research workflows, method schematics and conceptual frameworks. Learn from relevant paper figures, preserve the actual method, and deliver a compact composition with readable labels and reproducible source.
+This local workflow runs with Python and free libraries. The final files include SVG, PDF, PNG and a reproducible specification. Native draw.io and TIFF are available as options.
 
 ![A compact parallel research workflow with rounded shapes and two coordinated study lanes](assets/readme/research-workflow.png)
 
@@ -10,14 +10,14 @@ A portable Agent Skill for research workflows, method schematics and conceptual 
 
 ## Why use it?
 
-- **Research stays intact.** Preserve supported stages, numbers and relationships; inspect paper figures when they help answer a design question.
-- **Space works harder.** Compact layouts, close title/detail stacks, rounded connectors and a restrained Okabe–Ito palette.
-- **Checks accompany the figure.** Measured text, overlap, contrast, ports and spacing, followed by full and print-size visual review.
-- **Source stays editable.** SVG text, vector geometry, PDF, 600-DPI PNG and a reproducible JSON specification. Optional PNG icons remain raster assets.
+- Start from stages and relationships or bring an existing layout.
+- Link substantive stages and arrows to manuscript sections or other source locations.
+- Check text size, contrast, ports, crossings and spacing at the intended print width.
+- Edit the source in JSON, SVG or native draw.io. Use TIFF when the venue calls for it.
 
 ## Get started
 
-Copy this whole repository folder into your agent's supported skills directory, then use:
+Copy the `paper-grounded-manuscript-diagram` folder into your agent's skill directory and ask it to use the skill with your method. See the [platform setup guide](references/platform-compatibility.md).
 
 ```text
 Use $paper-grounded-manuscript-diagram to draw my method.
@@ -26,27 +26,29 @@ shapes and connectors. Review relevant paper figures where useful.
 Deliver SVG, PDF, 600-DPI PNG and source; inspect the actual print-size output.
 ```
 
-Your agent must support skill loading and provide the necessary file, image and research tools. See [platform setup](references/platform-compatibility.md).
-
-To try the local renderer with an existing Matplotlib/Pillow environment:
+Try the example locally in a Python environment. Install the optional libraries once if they are missing.
 
 ```sh
-python scripts/render_diagram.py templates/parallel-study.json --output-dir diagram-output --stem method
+python -m pip install -r requirements-render.txt
+python scripts/plan_diagram.py --doctor
+python scripts/plan_diagram.py templates/review-selection-method.json --output-dir demo --drawio --require-sources
 ```
 
-Open `method-preview.png` and `method-print-size.png`. The renderer checks your explicit layout; it does not infer missing methods or automatically arrange every graph.
+Open `demo/method-print-size.png` and `demo/method.drawio`. The example builds a screening workflow excerpt from a [public source](https://www.bmj.com/content/372/bmj.n71), and the QA receipt links nodes and arrows to specific source locations. [Input and figure walkthrough](references/method-to-figure.md).
+
+![Study selection with a main path, explicit branches and the recorded exclusions beside it](assets/readme/review-selection.png)
 
 ## Icons that fit the content
 
-When useful, the agent compares title-inline, side or top positions, keeping labels readable and avoiding an empty icon column. Image generation is optional: available tools can create a matching set on white, then local preparation removes the exterior and checks the cutouts.
+Use an icon when it clarifies the stage. The planner compares title, side and top placement using the amount of wrapping and space each needs. The example uses locally drawn symbols.
 
 ![Three compact workflow nodes with small icons beside their titles and full-width details](assets/readme/icon-workflow.png)
 
-*The [icon example](templates/icon-workflow/diagram.json) uses locally authored artwork, not AI-generated assets. Generation and background-removal model inference depend on the host.*
+See the [icon example and source](templates/icon-workflow/diagram.json).
 
 ## Go deeper
 
-[Skill instructions](SKILL.md) · [Drawing contract](references/rendering.md) · [Density and whitespace](references/layout-density.md) · [Icon workflow](references/icon-workflow.md)
+[Skill instructions](SKILL.md) · [Method and source fields](references/method-to-figure.md) · [Drawing contract](references/rendering.md) · [Icon workflow](references/icon-workflow.md)
 
 Keep unpublished materials local, use legally accessible sources and record the figures actually inspected. Automated checks support review; they do not certify scientific validity or journal acceptance.
 

@@ -15,6 +15,9 @@ import json
 import math
 import re
 import sys
+from tempfile import TemporaryDirectory
+from uuid import uuid4
+from itertools import combinations
 from pathlib import Path
 
 PALETTE = {"blue": "#0072B2", "sky_blue": "#56B4E9", "orange": "#E69F00",
@@ -23,7 +26,8 @@ PALETTE = {"blue": "#0072B2", "sky_blue": "#56B4E9", "orange": "#E69F00",
 
 
 def color(value):
-    value = PALETTE.get(value, value)
+    if isinstance(value, str):
+        value = PALETTE.get(value, value)
     if not isinstance(value, str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
         raise ValueError(f"Use a palette name or #RRGGBB colour, got {value!r}")
     return value
@@ -44,6 +48,74 @@ def box(value, name):
     return x, y, w, h
 
 
+def wrap_label(raw, available, measure):
+    lines = []
+    for paragraph in raw.split('\n'):
+        line = ''
+        for word in paragraph.split():
+            proposed = (line + ' ' + word).strip()
+            if line and measure(proposed) > available:
+                lines.append(line)
+                line = word
+            else:
+                line = proposed
+        lines.append(line)
+    return '\n'.join(lines)
+
+
+def validate_label_style(record, name, *, is_node=False):
+    for key in ('font_pt', 'detail_font_pt', 'padding_pt', 'title_height_pt',
+                'label_height_pt', 'icon_space_pt'):
+        if key not in record:
+            continue
+        value = number(record[key], f'{name}.{key}')
+        allows_zero = key in {'padding_pt', 'icon_space_pt'}
+        if value < 0 or (value == 0 and not allows_zero):
+            raise ValueError(f'{name}.{key} must be {"nonnegative" if allows_zero else "positive"}')
+        if key.endswith('font_pt') and value > 36:
+            raise ValueError(f'{name}.{key} must be at most 36 pt')
+    if 'bold' in record and not isinstance(record['bold'], bool):
+        raise ValueError(f'{name}.bold must be true or false')
+    if record.get('align', 'center') not in ('left', 'center'):
+        raise ValueError(f'{name}.align must be left or center')
+    color(record.get('fill', 'white'))
+    color(record.get('text_color', 'black'))
+    if is_node:
+        color(record.get('stroke_color', 'black'))
+
+
+def provenance(spec):
+    """Describe supplied provenance and any uncovered substantive elements."""
+    sources = spec.get('sources', [])
+    if not isinstance(sources, list):
+        raise ValueError('sources must be a list')
+    source_ids = set()
+    for source in sources:
+        if not isinstance(source, dict):
+            raise ValueError('Each source must be an object')
+        for field in ('id', 'title', 'locator'):
+            if not isinstance(source.get(field), str) or not source[field].strip():
+                raise ValueError(f'Each source needs a nonempty {field}')
+        if source['id'] in source_ids:
+            raise ValueError(f"Duplicate source id: {source['id']}")
+        source_ids.add(source['id'])
+        if source.get('kind', 'method') not in ('method', 'figure', 'dataset', 'code', 'asset'):
+            raise ValueError('Unknown source kind')
+    linked, uncovered = {}, []
+    for kind in ('nodes', 'edges', 'annotations', 'icons'):
+        for index, item in enumerate(spec.get(kind, [])):
+            identifier = f'{kind}:{item.get("id", index)}'
+            refs = item.get('source_refs', [])
+            if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in source_ids for ref in refs):
+                raise ValueError(f'{identifier}.source_refs must name sources in the specification')
+            if refs:
+                linked[identifier] = refs
+            elif kind == 'edges' or (kind == 'nodes' and item.get('shape') not in ('header', 'group')):
+                uncovered.append(identifier)
+    return {'sources': sources, 'linked_elements': linked, 'unlinked_method_elements': uncovered,
+            'review': 'Source references supplied by the author or agent; check claim support separately.'}
+
+
 def validate_spec(spec):
     if not isinstance(spec, dict):
         raise ValueError("Specification must be a JSON object")
@@ -56,15 +128,21 @@ def validate_spec(spec):
     font_size = number(canvas.get("font_pt", 9), "canvas.font_pt")
     if width <= 0 or height <= 0 or not 6 <= minimum <= font_size <= 36:
         raise ValueError("Positive canvas and 6 <= min_font_pt <= font_pt <= 36 required")
-    if not str(spec.get("title", "")).strip():
+    if not isinstance(spec.get('title'), str) or not spec['title'].strip():
         raise ValueError("A descriptive title is required")
+    if 'description' in spec and not isinstance(spec['description'], str):
+        raise ValueError('description must be text')
+    if 'font_family' in canvas and (not isinstance(canvas['font_family'], str) or not canvas['font_family'].strip()):
+        raise ValueError('canvas.font_family must be a nonempty font family')
     style=spec.get('style',{})
     if not isinstance(style,dict):raise ValueError('style must be an object')
     for key,default in [('corner_radius_pt',5),('connector_radius_pt',5),('line_width_pt',.85)]:
         value=number(style.get(key,default),'style.'+key)
         if value < 0 or (key=='line_width_pt' and value==0):raise ValueError(f'style.{key} must be nonnegative, with positive line width')
-    if style.get('connector_style','rounded') not in {'rounded','orthogonal'}:
+    if style.get('connector_style','rounded') not in ('rounded','orthogonal'):
         raise ValueError('connector_style must be rounded or orthogonal')
+    color(style.get('stroke_color', 'black'))
+    color(style.get('connector_color', 'black'))
     gap=number(style.get('title_detail_gap_pt',3.5),'style.title_detail_gap_pt')
     if gap < 0:raise ValueError('title_detail_gap_pt must be nonnegative')
     nodes = spec.get("nodes")
@@ -80,24 +158,26 @@ def validate_spec(spec):
         x, y, w, h = box(node.get("box"), node["id"])
         if x < 0 or y < 0 or x+w > width or y+h > height:
             raise ValueError(f"Node {node['id']} lies outside the canvas")
-        if node.get("shape", "process") not in {"process", "data", "input", "decision", "terminator", "header", "group"}:
+        if node.get("shape", "process") not in ("process", "data", "input", "decision", "terminator", "header", "group"):
             raise ValueError(f"Unknown shape for {node['id']}")
         if not isinstance(node.get("label"), str) or not node["label"].strip():
             raise ValueError(f"Node {node['id']} needs a label")
-        color(node.get("fill", "white")); color(node.get("text_color", "black"))
-        number(node.get("font_pt", font_size), "node.font_pt")
+        validate_label_style(node, f"Node {node['id']}", is_node=True)
         if 'detail' in node and (not isinstance(node['detail'],str) or not node['detail'].strip()):
             raise ValueError(f"Node {node['id']} detail must be nonempty text")
-        if node.get('text_layout','stacked') not in {'stacked','bands'}:
+        if node.get('text_layout','stacked') not in ('stacked','bands'):
             raise ValueError('node.text_layout must be stacked or bands')
     edge_ids = set()
     edges=spec.get('edges',[])
     if not isinstance(edges,list):raise ValueError('edges must be a list')
     for i, edge in enumerate(edges):
         if not isinstance(edge,dict):raise ValueError('Each edge must be an object')
-        if edge.get("from") not in ids or edge.get("to") not in ids:
+        if any(not isinstance(edge.get(key), str) or edge[key] not in ids for key in ('from', 'to')):
             raise ValueError(f"Edge {i} has an unknown endpoint")
         eid = edge.get("id", str(i))
+        if isinstance(eid, bool) or not isinstance(eid, (str, int)) or not str(eid).strip():
+            raise ValueError(f'Edge {i} needs a text or integer id')
+        eid = str(eid)
         if eid in edge_ids:
             raise ValueError(f"Duplicate edge id: {eid}")
         edge_ids.add(eid)
@@ -115,12 +195,23 @@ def validate_spec(spec):
         for a,b in zip(parsed, parsed[1:]):
             if a == b or (a[0] != b[0] and a[1] != b[1]):
                 raise ValueError(f"Edge {eid} must use nonzero orthogonal segments")
-        if edge.get("style", "solid") not in {"solid", "dashed"}:
+        if edge.get("style", "solid") not in ("solid", "dashed"):
             raise ValueError(f"Edge {eid} style must be solid or dashed")
-        if edge.get('arrow','end') not in {'end','both','none'}:
+        if edge.get('arrow','end') not in ('end','both','none'):
             raise ValueError(f'Edge {eid} arrow must be end, both or none')
-        if edge.get("style") == "dashed" and not edge.get("meaning"):
+        if 'label' in edge and (not isinstance(edge['label'], str) or not edge['label'].strip()):
+            raise ValueError(f'Edge {eid} label must be nonempty text')
+        if edge.get("style") == "dashed" and (not isinstance(edge.get('meaning'), str) or not edge['meaning'].strip()):
             raise ValueError(f"Dashed edge {eid} needs an explicit meaning")
+    accepted_crossings = spec.get('allowed_crossings', [])
+    if not isinstance(accepted_crossings, list):
+        raise ValueError('allowed_crossings must be a list')
+    for entry in accepted_crossings:
+        if (not isinstance(entry, dict) or not isinstance(entry.get('edges'), list)
+                or len(entry['edges']) != 2 or not all(isinstance(e, str) and e in edge_ids for e in entry['edges'])
+                or entry['edges'][0] == entry['edges'][1]
+                or not isinstance(entry.get('reason'), str) or not entry['reason'].strip()):
+            raise ValueError('Each allowed crossing needs two different edge ids and a reason')
     annotations=spec.get('annotations',[])
     if not isinstance(annotations,list):raise ValueError('annotations must be a list')
     for note in annotations:
@@ -130,6 +221,7 @@ def validate_spec(spec):
             raise ValueError("Annotation lies outside the canvas")
         if not isinstance(note.get("label"), str) or not note["label"].strip():
             raise ValueError("Annotation label is required")
+        validate_label_style(note, 'Annotation')
     icons = spec.get('icons', [])
     if not isinstance(icons, list):raise ValueError('icons must be a list')
     icon_ids = set()
@@ -143,7 +235,7 @@ def validate_spec(spec):
             raise ValueError('Icon path must be a relative local PNG within the specification directory')
         if not isinstance(icon.get('alt'), str) or not icon['alt'].strip():raise ValueError('Icon alt/meaning is required')
         placement=icon.get('placement','left' if 'node' in icon else 'fixed')
-        if placement not in {'left','right','top','title','fixed'}:raise ValueError('Unknown icon placement')
+        if placement not in ('left','right','top','title','fixed'):raise ValueError('Unknown icon placement')
         if placement=='title':
             size=icon.get('size_pt')
             if not isinstance(size,list) or len(size)!=2 or min(number(v,'icon.size_pt') for v in size)<=0:
@@ -161,7 +253,7 @@ def validate_spec(spec):
                 if owner.get('shape')=='group':raise ValueError('Title icons are not supported in group frames')
                 if owner.get('text_layout','bands' if 'title_height_pt' in owner else 'stacked')!='stacked':
                     raise ValueError('Title icon requires stacked text; remove band height or set text_layout to stacked')
-                if sum(i.get('node')==icon['node'] for i in icons)!=1:raise ValueError('Use one attached icon per title cluster')
+                if sum(isinstance(i, dict) and i.get('node')==icon['node'] for i in icons)!=1:raise ValueError('Use one attached icon per title cluster')
                 continue
             if placement=='fixed':raise ValueError('For an attached icon choose left, right, top or title')
             reserve = number(owner.get('icon_space_pt', 0), 'node.icon_space_pt')
@@ -172,6 +264,7 @@ def validate_spec(spec):
             sx,sy,sw,sh=strips[placement]
             if not (sx+2<=x and x+w<=sx+sw-2 and sy+2<=y and y+h<=sy+sh-2):
                 raise ValueError('Icon must fit in its reserved strip')
+    provenance(spec)
     return spec
 
 
@@ -240,6 +333,9 @@ def shape_port(point, neighbour, bounds, paths):
     outward=neighbour[axis]-point[axis]
     side=1 if outward>0 else -1
     low=(x,y)[axis];span=(w,h)[axis]
+    expected_side = low + span if side > 0 else low
+    if abs(point[axis] - expected_side) > 1.5 or side * (neighbour[axis] - expected_side) <= 0:
+        raise ValueError('Route points inward or runs along a boundary. Leave the named side of the node first.')
     def coord(value):return (value,fixed) if axis==0 else (fixed,value)
     def inside(value):return any(path.contains_point(coord(value)) for path in paths)
     # Find an interior point on this corridor, not the rectangle's corner.
@@ -254,7 +350,77 @@ def shape_port(point, neighbour, bounds, paths):
         midpoint=(interior+exterior)/2
         if inside(midpoint):interior=midpoint
         else:exterior=midpoint
-    return coord((interior+exterior)/2)
+    resolved = (interior+exterior)/2
+    if side * (neighbour[axis] - resolved) <= 1e-6:
+        raise ValueError('Route must continue away from the resolved node port.')
+    return coord(resolved)
+
+
+def segment_meeting(a, b, c, d):
+    """Return a route intersection or collinear overlap, if present."""
+    tolerance = 1e-7
+
+    def cross(u, v):
+        return u[0] * v[1] - u[1] * v[0]
+
+    ab = tuple(y - x for x, y in zip(a, b))
+    cd = tuple(y - x for x, y in zip(c, d))
+    ac = tuple(y - x for x, y in zip(a, c))
+    denominator = cross(ab, cd)
+    if abs(denominator) > tolerance:
+        t, u = cross(ac, cd) / denominator, cross(ac, ab) / denominator
+        if -tolerance <= t <= 1 + tolerance and -tolerance <= u <= 1 + tolerance:
+            return 'crossing', tuple(x + t * v for x, v in zip(a, ab))
+        return None
+    if abs(cross(ac, ab)) > tolerance or max(map(abs, ab)) <= tolerance or max(map(abs, cd)) <= tolerance:
+        return None
+    axis = 0 if abs(ab[0]) >= abs(ab[1]) else 1
+    first, last = sorted(((c[axis] - a[axis]) / ab[axis], (d[axis] - a[axis]) / ab[axis]))
+    lo, hi = max(0, first), min(1, last)
+    if hi < lo - tolerance:
+        return None
+    midpoint = tuple(x + (lo + hi) / 2 * v for x, v in zip(a, ab))
+    return ('overlap' if hi - lo > tolerance else 'crossing'), midpoint
+
+
+def shared_join_prefix(first, second):
+    """Find identical curve segments at a shared, same-role port."""
+    segments = set()
+    for a, b in zip(zip(first, first[1:]), zip(second, second[1:])):
+        if a != b:
+            break
+        segments.add(frozenset(a))
+    return segments
+
+
+def connector_crossings(routes):
+    """Flag independent routes and connections that cross outside a shared join."""
+    for (i, (first, a)), (j, (second, b)) in combinations(enumerate(routes), 2):
+        shared_segments = set()
+        shared_ports = set()
+        if first['from'] == second['from'] and a[0] == b[0]:
+            shared_ports.add(a[0])
+            shared_segments |= shared_join_prefix(a, b)
+        if first['to'] == second['to'] and a[-1] == b[-1]:
+            shared_ports.add(a[-1])
+            shared_segments |= shared_join_prefix(a[::-1], b[::-1])
+        shared_ports.update(p for segment in shared_segments for p in segment)
+        for (p, q), (r, s) in ((x, y) for x in zip(a, a[1:]) for y in zip(b, b[1:])):
+            if max(p[0], q[0]) < min(r[0], s[0]) or max(r[0], s[0]) < min(p[0], q[0]):
+                continue
+            if max(p[1], q[1]) < min(r[1], s[1]) or max(r[1], s[1]) < min(p[1], q[1]):
+                continue
+            meeting = segment_meeting(p, q, r, s)
+            if not meeting:
+                continue
+            kind, point = meeting
+            if kind == 'overlap' and frozenset((p, q)) == frozenset((r, s)) and frozenset((p, q)) in shared_segments:
+                continue
+            if kind == 'crossing' and any(math.dist(point, port) <= 1e-6 for port in shared_ports):
+                continue
+            yield {'edges': [str(first.get('id', i)), str(second.get('id', j))],
+                   'kind': kind, 'point_pt': [round(v, 3) for v in point]}
+            break
 
 
 def contrast(fg, bg):
@@ -359,12 +525,122 @@ def bleed_transparent_rgb(image):
     return result
 
 
-def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
-    validate_spec(spec)
+def artifact_names(stem):
+    extensions = ('.svg', '-outlined.svg', '.png', '.pdf', '.tiff', '.drawio',
+                  '-preview.png', '-print-size.png', '-diagnostic.png', '-source.json', '-attempt.json',
+                  '-qa.json', '-assets')
+    return {stem + extension for extension in extensions}
+
+
+def artifact_hash(path):
+    if path.is_symlink():
+        raise ValueError(f'Generated artifacts cannot be symlinks: {path.name}')
+    if path.is_file():
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    if path.is_dir():
+        return {item.name: artifact_hash(item) for item in sorted(path.iterdir())}
+    raise ValueError(f'Unexpected output file type: {path.name}')
+
+
+def publish_run(staged, output_dir, stem, report):
+    """Publish a complete run and archive the previous managed files."""
+    names = artifact_names(stem)
+    receipt = stem + '-qa.json'
+    existing = {path.name: path for path in output_dir.iterdir() if path.name in names}
+    previous = None
+    if existing:
+        if receipt not in existing:
+            raise ValueError('Output stem already contains files without a renderer receipt. Use a new stem.')
+        if existing[receipt].is_symlink():
+            raise ValueError('Output receipt must be a regular file')
+        previous = json.loads(existing[receipt].read_text(encoding='utf-8'))
+        if (not isinstance(previous, dict) or 'passed_geometry_checks' not in previous
+                or not isinstance(previous.get('exports'), list)):
+            raise ValueError('Output stem already contains an unrecognised receipt. Use a new stem.')
+        manifest = previous.get('artifacts')
+        if manifest is not None:
+            current = {name: artifact_hash(path) for name, path in existing.items() if name != receipt}
+            if current != manifest:
+                raise ValueError('Previous output files were edited, added or removed. Use a new stem to preserve them.')
+        elif any(path.is_symlink() for path in existing.values()):
+            raise ValueError('Legacy outputs containing symlinks cannot be archived')
+
+    files = {path.name: path for path in staged.iterdir() if path.name in names and path.name != receipt}
+    report['artifacts'] = {name: artifact_hash(path) for name, path in files.items()}
+    (staged / receipt).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+    archive = None
+    moved, installed = [], []
+    try:
+        if previous is not None:
+            history = output_dir / '.history'
+            if history.is_symlink() or not history.resolve().is_relative_to(output_dir.resolve()):
+                raise ValueError('The output history directory must be local to the output directory')
+            archive = history / f'{stem}-{uuid4().hex}'
+            archive.mkdir(parents=True)
+            for name, path in existing.items():
+                path.replace(archive / name)
+                moved.append(name)
+        for name, path in files.items():
+            path.replace(output_dir / name)
+            installed.append(name)
+        (staged / receipt).replace(output_dir / receipt)
+    except (OSError, ValueError):
+        for name in reversed(installed):
+            (output_dir / name).replace(staged / name)
+        if archive is not None:
+            for name in reversed(moved):
+                (archive / name).replace(output_dir / name)
+        raise
+
+
+def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
+           preview_only=False, drawio=False, tiff=False, require_sources=False, profile=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stem):
         raise ValueError("stem must be a filename without paths or extensions")
-    if not 150 <= dpi <= 1200:
-        raise ValueError("dpi must be between 150 and 1200")
+    destination = Path(output_dir).resolve()
+    destination.mkdir(parents=True, exist_ok=True)
+    lock = destination / f'.{stem}.render.lock'
+    try:
+        handle = lock.open('x', encoding='utf-8')
+    except FileExistsError:
+        raise ValueError(f'Output stem {stem} is already in use. Choose a different stem.') from None
+    try:
+        handle.close()
+        with TemporaryDirectory(dir=destination, prefix=f'.{stem}-') as tmp:
+            staging = Path(tmp)
+            try:
+                if not 150 <= number(dpi, 'dpi') <= 1200:
+                    raise ValueError('dpi must be between 150 and 1200')
+                if profile not in (None, 'plos-one'):
+                    raise ValueError('Unknown figure export profile')
+                if preview_only and (drawio or tiff or profile):
+                    raise ValueError('Preview mode only writes inspection images and QA')
+                if callable(spec):
+                    spec = spec()
+                validate_spec(spec)
+                sources = provenance(spec)
+                if require_sources and sources['unlinked_method_elements']:
+                    raise ValueError('Missing source references for ' + ', '.join(sources['unlinked_method_elements']))
+                report = render_figure(spec, staging, stem, dpi, asset_dir,
+                                       preview_only=preview_only, drawio=drawio, tiff=tiff or profile == 'plos-one',
+                                       profile=profile)
+            except (ValueError, OSError, ImportError) as error:
+                failure_dir = staging / 'failure'
+                failure_dir.mkdir()
+                report = {'schema_version': 2, 'run_id': uuid4().hex, 'status': 'input-or-export-error',
+                          'passed_geometry_checks': False, 'exports': [], 'errors': [str(error)]}
+                publish_run(failure_dir, destination, stem, report)
+                raise
+            report['run_id'] = uuid4().hex
+            report['spec_sha256'] = hashlib.sha256(
+                json.dumps(spec, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            publish_run(staging, destination, stem, report)
+            return report
+    finally:
+        lock.unlink()
+
+
+def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawio, tiff, profile):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -387,19 +663,23 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
         font_path=font_manager.findfont(font)
     supported_codepoints=set(FT2Font(font_path).get_charmap())
     output_dir=Path(output_dir);output_dir.mkdir(parents=True,exist_ok=True)
-    report={'schema_version':1,'scientific_review':'not performed by renderer',
+    report={'schema_version':2,'scientific_review':'not performed by renderer',
             'visual_review':'pending human inspection','literature_review':'not performed by renderer',
             'font_requested':requested_font,'font_used':font,'matplotlib':matplotlib.__version__,
             'physical_inches':[width/72,height/72],'png_dpi':dpi,'errors':[],
             'warnings':[],'text':[],'icons':[],'exports':[],
             'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width,
                      'title_detail_gap_pt':design.get('title_detail_gap_pt',3.5)},
-            'edge_geometry_check':'16 samples per quadratic corner; visual review remains required'}
+            'edge_geometry_check':'16 samples per quadratic corner; visual review remains required',
+            'provenance':provenance(spec)}
+    if 'layout_plan' in spec:
+        report['layout_plan'] = spec['layout_plan']
     if font != requested_font:report['warnings'].append(f'Font unavailable; substituted {font}')
     rc={'font.family':font,'svg.fonttype':'none','pdf.fonttype':42,'savefig.facecolor':'white','svg.image_inline':True}
     with plt.rc_context(rc):
         fig=plt.figure(figsize=(width/72,height/72),dpi=144,facecolor='white')
         ax=fig.add_axes([0,0,1,1]);ax.set(xlim=(0,width),ylim=(height,0));ax.set_axis_off()
+        measurement_renderer = fig.canvas.get_renderer()
         nodes={n['id']:n for n in spec['nodes']}
         routes=[]
         def plot_path(commands):
@@ -410,10 +690,11 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
             shape_paths={}
             for n in spec['nodes']:
                 x,y,w,h=n['box'];shape=n.get('shape','process');fill=color(n.get('fill','white'))
+                stroke = color(n.get('stroke_color', design.get('stroke_color', 'black')))
                 if shape in {'process','terminator','header','group'}:
                     radius=min(h/2,16) if shape=='terminator' else min(corner,h/2,w/2)
                     patch=FancyBboxPatch((x,y),w,h,boxstyle=f'round,pad=0,rounding_size={radius}',
-                        facecolor='none' if shape=='group' else fill,edgecolor='black',lw=line_width,
+                        facecolor='none' if shape=='group' else fill,edgecolor=stroke,lw=line_width,
                         linestyle=(0,(3,2)) if shape=='group' else 'solid',zorder=0 if shape=='group' else 2)
                     ax.add_patch(patch)
                 elif shape=='data':
@@ -421,13 +702,13 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     verts=[(x,y+ey/2),(x,y),(x+w,y),(x+w,y+ey/2),(x+w,y+h-ey/2),
                            (x+w,y+h),(x,y+h),(x,y+h-ey/2),(x,y+ey/2),(x,y+ey/2)]
                     codes=[PlotPath.MOVETO]+[PlotPath.CURVE4]*3+[PlotPath.LINETO]+[PlotPath.CURVE4]*3+[PlotPath.LINETO,PlotPath.CLOSEPOLY]
-                    patch=PathPatch(PlotPath(verts,codes),facecolor=fill,edgecolor='black',lw=line_width,zorder=2)
+                    patch=PathPatch(PlotPath(verts,codes),facecolor=fill,edgecolor=stroke,lw=line_width,zorder=2)
                     ax.add_patch(patch)
-                    cap=Ellipse((x+w/2,y+ey/2),w,ey,facecolor=fill,edgecolor='black',lw=line_width,zorder=3)
+                    cap=Ellipse((x+w/2,y+ey/2),w,ey,facecolor=fill,edgecolor=stroke,lw=line_width,zorder=3)
                     ax.add_patch(cap)
                 else:
                     pts=[(x+w/2,y),(x+w,y+h/2),(x+w/2,y+h),(x,y+h/2)] if shape=='decision' else [(x+7,y),(x+w,y),(x+w-7,y+h),(x,y+h)]
-                    patch=PathPatch(plot_path(rounded_polygon(pts,min(corner,3))),facecolor=fill,edgecolor='black',lw=line_width,zorder=2,joinstyle='round')
+                    patch=PathPatch(plot_path(rounded_polygon(pts,min(corner,3))),facecolor=fill,edgecolor=stroke,lw=line_width,zorder=2,joinstyle='round')
                     ax.add_patch(patch)
                 shape_paths[n['id']]=[patch.get_path()]
                 if shape=='data':shape_paths[n['id']].append(cap.get_path().transformed(cap.get_patch_transform()))
@@ -472,24 +753,39 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     'bounds_pt':list(bounds),'native_dpi':round(native_dpi,2),'background_review':'pending human inspection'})
             report['resolved_ports']=[]
             for i,e in enumerate(spec.get('edges',[])):
-                points=[tuple(p) for p in e['points']];eid=e.get('id',str(i))
+                points=[tuple(p) for p in e['points']];eid=str(e.get('id',i))
                 if not on_boundary(points[0],nodes[e['from']]['box']) or not on_boundary(points[-1],nodes[e['to']]['box']):
                     report['errors'].append(f'Edge {eid} does not meet its named node boundaries')
                 else:
-                    points[0]=shape_port(points[0],points[1],nodes[e['from']]['box'],shape_paths[e['from']])
-                    points[-1]=shape_port(points[-1],points[-2],nodes[e['to']]['box'],shape_paths[e['to']])
+                    try:
+                        start = shape_port(points[0],points[1],nodes[e['from']]['box'],shape_paths[e['from']])
+                        end = shape_port(points[-1],points[-2],nodes[e['to']]['box'],shape_paths[e['to']])
+                        points[0], points[-1] = start, end
+                    except ValueError as exc:
+                        report['errors'].append(f'Edge {eid}: {exc}')
                 report['resolved_ports'].append({'id':eid,'start':list(points[0]),'end':list(points[-1])})
                 style=(0,(3,2)) if e.get('style')=='dashed' else 'solid'
                 commands,samples=rounded_route(points,bend);routes.append((e,samples))
                 ax.add_patch(FancyArrowPatch(path=plot_path(commands),arrowstyle={'end':'-|>','both':'<|-|>','none':'-'}[e.get('arrow','end')],mutation_scale=6,
-                    color='black',linewidth=line_width,linestyle=style,shrinkA=0,shrinkB=.4,zorder=1,joinstyle='round',capstyle='round'))
+                    color=color(design.get('connector_color', 'black')),linewidth=line_width,linestyle=style,
+                    shrinkA=0,shrinkB=.4,zorder=1,joinstyle='round',capstyle='round'))
                 for node in spec['nodes']:
                     if node['id'] in {e['from'],e['to']} or node.get('shape')=='group':continue
                     x,y,w,h=node['box']
                     if any(segment_hits(a,b,(x+.5,y+.5,x+w-.5,y+h-.5)) for a,b in zip(samples,samples[1:])):
                         report['errors'].append(f'Edge {eid} crosses unrelated node {node["id"]}')
+            allowed = {frozenset(item['edges']): item['reason'] for item in spec.get('allowed_crossings', [])}
+            report['connector_crossings'] = list(connector_crossings(routes))
+            for meeting in report['connector_crossings']:
+                pair = meeting['edges']
+                reason = allowed.get(frozenset(pair))
+                if reason:
+                    meeting['review_reason'] = reason
+                    report['warnings'].append(f"Reviewed route {meeting['kind']} {pair[0]} / {pair[1]}: {reason}")
+                else:
+                    report['errors'].append(f"Route {meeting['kind']} between edges {pair[0]} and {pair[1]} at {meeting['point_pt']}")
             labels=[]
-            def add_label(record, identifier):
+            def add_label(record, identifier, *, annotation=False):
                 x,y,w,h=record['box'];shape=record.get('shape','process');padding=record.get('padding_pt',5)
                 if shape=='data':padding=max(padding,7)
                 if shape=='input':padding=max(padding,10)
@@ -504,30 +800,28 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     report['errors'].append(f'Label {identifier} has missing glyphs in {font}: '+', '.join(f'U+{c:04X}' for c in missing))
                 if size < minimum:
                     report['errors'].append(f'Label {identifier} is below the minimum font size')
-                text=ax.text(x+w/2,y+h/2,'',ha='center',va='center',fontweight='bold' if record.get('bold',False) else 'normal',
+                alignment = record.get('align', 'center')
+                label_x = x + padding if alignment == 'left' else x + w / 2
+                text=ax.text(label_x,y+h/2,'',ha=alignment,va='center',fontweight='bold' if record.get('bold',False) else 'normal',
                     fontsize=size,color=color(record.get('text_color','black')),linespacing=1.13,zorder=5,parse_math=False)
                 def bounds():
-                    fig.canvas.draw(); b=text.get_window_extent(fig.canvas.get_renderer()).transformed(ax.transData.inverted())
+                    b=text.get_window_extent(measurement_renderer).transformed(ax.transData.inverted())
                     return min(b.x0,b.x1),min(b.y0,b.y1),max(b.x0,b.x1),max(b.y0,b.y1)
-                def wrap(raw, available):
-                    lines=[]
-                    for para in raw.split('\n'):
-                        line=''
-                        for word in para.split():
-                            candidate=(line+' '+word).strip();text.set_text(candidate)
-                            a,_,b,_=bounds()
-                            if b-a > available and line:lines.append(line);line=word
-                            else:line=candidate
-                        lines.append(line)
-                    return '\n'.join(lines)
+                def measure(value):
+                    text.set_text(value)
+                    left, _, right, _ = bounds()
+                    return right - left
                 while True:
-                    text.set_fontsize(size);wrapped=wrap(record['label'],w-2*padding);text.set_text(wrapped);b=bounds()
-                    if b[0] >= x+padding and b[2] <= x+w-padding and b[1] >= y+padding and b[3] <= y+h-padding:break
+                    text.set_fontsize(size);wrapped=wrap_label(record['label'],w-2*padding,measure);text.set_text(wrapped);b=bounds()
+                    epsilon = 1e-6
+                    if b[0] >= x+padding-epsilon and b[2] <= x+w-padding+epsilon and b[1] >= y+padding-epsilon and b[3] <= y+h-padding+epsilon:break
                     if size <= minimum:
                         report['errors'].append(f'Label {identifier} overflows at {minimum:g} pt; enlarge/reflow the layout')
                         break
                     size=max(minimum,round(size-.25,2))
-                ratio=contrast(color(record.get('text_color','black')),color(record.get('fill','white')))
+                # Group frames and annotations have no background patch.
+                bg = 'white' if shape == 'group' or annotation else record.get('fill', 'white')
+                ratio=contrast(color(record.get('text_color','black')),color(bg))
                 if ratio < 4.5:report['errors'].append(f'Label {identifier} contrast is {ratio:.2f}, below 4.5')
                 labels.append((identifier,b,text))
                 report['text'].append({'id':identifier,'node_id':record.get('id'),'text':wrapped,'font_pt':size,'bounds_pt':list(b),'contrast':round(ratio,3)})
@@ -541,7 +835,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                 return inner
             def move_label(j,cx,cy):
                 identifier,_,artist=labels[j];artist.set_position((cx,cy))
-                fig.canvas.draw();b=artist.get_window_extent(fig.canvas.get_renderer()).transformed(ax.transData.inverted())
+                b=artist.get_window_extent(measurement_renderer).transformed(ax.transData.inverted())
                 measured=(min(b.x0,b.x1),min(b.y0,b.y1),max(b.x0,b.x1),max(b.y0,b.y1))
                 labels[j]=(identifier,measured,artist);report['text'][j]['bounds_pt']=list(measured)
             for n in spec['nodes']:
@@ -552,13 +846,13 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     gap=icon.get('gap_pt',4);tw=inner[2]-iw-gap
                     if tw<=0:raise ValueError('No room for title beside icon; choose another placement')
                     start=len(labels)
-                    title_record=dict(n,box=[inner[0],inner[1],tw,inner[3]],shape='process',
+                    title_record=dict(n,box=[inner[0],inner[1],tw,inner[3]],shape='process',align='center',
                                       bold=True if 'detail' in n else n.get('bold',False),padding_pt=0)
                     add_label(title_record,n['id']+':title' if 'detail' in n else n['id'])
                     tb=labels[start][1];title_w,title_h=tb[2]-tb[0],tb[3]-tb[1]
                     row_h=max(title_h,ih);detail_h=0.;stack_gap=design.get('title_detail_gap_pt',3.5) if 'detail' in n else 0.
                     if 'detail' in n:
-                        add_label(dict(n,box=inner,shape='process',label=n['detail'],bold=False,padding_pt=0,
+                        add_label(dict(n,box=inner,shape='process',label=n['detail'],bold=False,padding_pt=0,align='center',
                                        font_pt=n.get('detail_font_pt',base)),n['id']+':detail')
                         db=labels[start+1][1];detail_h=db[3]-db[1]
                     total=row_h+stack_gap+detail_h
@@ -590,7 +884,8 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                         report['errors'].append(f'Combined title/detail {n["id"]} overflows; enlarge/reflow the node')
                     cursor=inner[1]+(inner[3]-total)/2
                     for j,lh in zip((start,start+1),heights):
-                        move_label(j,inner[0]+inner[2]/2,cursor+lh/2)
+                        label_x = inner[0] if n.get('align') == 'left' else inner[0] + inner[2] / 2
+                        move_label(j,label_x,cursor+lh/2)
                         cursor+=lh+gap
                     continue
                 x,y,w,h=n['box'];split=n.get('title_height_pt',22 if n.get('shape')=='data' else 18)
@@ -610,7 +905,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     title['box']=[x+6,y+2,w-12,split-2]
                     detail['box']=[x+6,y+split,w-12,h-split-2]
                 add_label(title,n['id']+':title');add_label(detail,n['id']+':detail')
-            for i,n in enumerate(spec.get('annotations',[])):add_label(n,f'annotation-{i}')
+            for i,n in enumerate(spec.get('annotations',[])):add_label(n,f'annotation-{i}',annotation=True)
             for i,(aid,ab,_) in enumerate(labels):
                 for bid,bb,_ in labels[i+1:]:
                     if intersects(ab,bb):report['errors'].append(f'Labels overlap: {aid} / {bid}')
@@ -645,9 +940,27 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                         report['errors'].append(f'Nodes overlap: {a["id"]} / {b["id"]}')
             report['layout']=layout_metrics(spec,report['text'],report['icons'])
             report['warnings']+=report['layout']['advisories']
+            if profile == 'plos-one':
+                report['export_profile'] = {
+                    'name': 'plos-one', 'reference': 'https://journals.plos.org/plosone/s/figures',
+                    'scope': 'Canvas dimensions, resolution, actual font, text sizes and TIFF size'
+                }
+                if not 189.36 - 1e-6 <= width <= 540 or height > 630:
+                    report['errors'].append('PLOS One profile expects 66.8–190.5 mm width and at most 222.3 mm height')
+                if not 300 <= dpi <= 600:
+                    report['errors'].append('PLOS One profile expects 300–600 DPI')
+                if font not in ('Arial', 'Times New Roman', 'Symbol'):
+                    report['errors'].append('PLOS One profile needs an installed Arial, Times New Roman or Symbol font. Set canvas.font_family.')
+                if any(not 8 <= text['font_pt'] <= 12 for text in report['text']):
+                    report['errors'].append('PLOS One profile expects 8–12 pt text')
             report['errors']=list(dict.fromkeys(report['errors']))
             report['passed_geometry_checks']=not report['errors']
-            if not report['errors']:
+            if not report['errors'] and preview_only:
+                report['exports'] = [f'{stem}-preview.png', f'{stem}-print-size.png']
+                fig.savefig(output_dir / report['exports'][0], dpi=150)
+                fig.savefig(output_dir / report['exports'][1], dpi=96)
+                report['status'] = 'preview'
+            elif not report['errors']:
                 svg=output_dir/f'{stem}.svg';fig.savefig(svg)
                 # Standalone editable SVG: no external DTD; local glyphs, no remote resources.
                 raw=re.sub(r'<!DOCTYPE[^>]*>','',svg.read_text(encoding='utf-8'),flags=re.S)
@@ -680,11 +993,32 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None):
                     report['warnings'].append('Icons are embedded raster assets; SVG/PDF labels and shapes remain vector')
                 (output_dir/f'{stem}-source.json').write_text(json.dumps(source_spec,indent=2,ensure_ascii=False),encoding='utf-8')
                 report['text_editable_in_svg']=True
+                if tiff:
+                    from PIL import Image
+                    tiff_path = output_dir / f'{stem}.tiff'
+                    with Image.open(output_dir / f'{stem}.png') as rendered:
+                        rendered.convert('RGB').save(tiff_path, compression='tiff_lzw', dpi=(dpi, dpi))
+                    if profile == 'plos-one' and tiff_path.stat().st_size >= 10_000_000:
+                        raise ValueError('PLOS One profile expects a TIFF smaller than 10 MB')
+                    report['exports'].append(tiff_path.name)
+                if drawio:
+                    try:
+                        from export_drawio import write_drawio
+                    except ModuleNotFoundError as exc:
+                        if exc.name != 'export_drawio':
+                            raise
+                        from scripts.export_drawio import write_drawio
+                    target = output_dir / f'{stem}.drawio'
+                    write_drawio(spec, report, target, {entry[0]['id']: entry[2] for entry in placed_icons}, color)
+                    report['exports'].append(target.name)
+                report['status'] = 'complete'
             else:
                 fig.savefig(output_dir/f'{stem}-diagnostic.png',dpi=150)
+                (output_dir/f'{stem}-attempt.json').write_text(
+                    json.dumps(spec, indent=2, ensure_ascii=False), encoding='utf-8')
+                report['status'] = 'geometry-or-profile-error'
         finally:
             plt.close(fig)
-    (output_dir/f'{stem}-qa.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
     return report
 
 
@@ -694,15 +1028,27 @@ def main():
     p.add_argument('--stem',default='figure-01');p.add_argument('--dpi',type=int,default=600)
     p.add_argument('--check-only',action='store_true',help='Validate the specification without Matplotlib or exports')
     p.add_argument('--layout-only',action='store_true',help='Report box occupancy/spacing without packages, rendering or changing the source')
+    p.add_argument('--preview-only', action='store_true', help='Render inspection PNGs and QA without final formats')
+    p.add_argument('--drawio', action='store_true', help='Also export native editable diagrams.net XML')
+    p.add_argument('--tiff', action='store_true', help='Also export lossless LZW TIFF at the requested DPI')
+    p.add_argument('--profile', choices=('plos-one',), help='Check a target journal export profile')
+    p.add_argument('--require-sources', action='store_true', help='Require supplied source locators on each method node and edge')
     args=p.parse_args()
     try:
-        spec=json.loads(args.spec.read_text(encoding='utf-8-sig'));validate_spec(spec)
-        if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
-        if args.check_only:print('Specification valid; rendering and visual review have not run.');return 0
-        report=render(spec,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent)
+        def load():
+            return json.loads(args.spec.read_text(encoding='utf-8-sig'))
+        if args.layout_only or args.check_only:
+            spec = load()
+            validate_spec(spec)
+            if args.require_sources and provenance(spec)['unlinked_method_elements']:
+                raise ValueError('Source references are missing from method nodes or edges.')
+            if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
+            print('Specification valid. Rendering and visual review have not run.');return 0
+        report=render(load,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent, preview_only=args.preview_only,
+                      drawio=args.drawio, tiff=args.tiff, profile=args.profile, require_sources=args.require_sources)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
                           'layout_advisories':report['layout']['advisories'],
-                          'visual_review':report['visual_review'],'exports':report['exports']},indent=2))
+                          'status':report['status'],'visual_review':report['visual_review'],'exports':report['exports']},indent=2))
         return 0 if report['passed_geometry_checks'] else 1
     except (ValueError,OSError,ImportError) as exc:
         print(f'Cannot render diagram: {exc}',file=sys.stderr);return 2

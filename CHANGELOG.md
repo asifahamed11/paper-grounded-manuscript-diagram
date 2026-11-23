@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- Added a measured first layout for sequences, parallel lanes and decision branches, with a reproducible public-method example.
+- Refined the examples with a quieter palette, aligned primary paths and consistent typography. Added measured icon placement candidates.
+- Fixed PDF extraction cleanup, contrast on transparent labels, inward ports, route crossings, and input field validation.
+- Added archived revisions, current-run artifact fingerprints, and failed-run diagnostics.
+- Added source references for method stages and links, an inspected-figure ranking mode, native draw.io and lossless TIFF outputs, and a PLOS One export profile.
+
 ## 1.3.0
 
 - Made compact, balanced composition the default guidance across layouts, with content-first canvas sizing, measured text stacks and space for meaningful routing.

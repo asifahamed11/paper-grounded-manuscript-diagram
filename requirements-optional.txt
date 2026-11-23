@@ -1,5 +1,5 @@
 # Optional dependencies for helper scripts.
 # The core SKILL.md does not require Python packages.
-PyMuPDF>=1.24
-Pillow>=10.0
-matplotlib>=3.8,<4
+-r requirements-render.txt
+# PDF page rendering and image extraction.
+PyMuPDF>=1.24.5,<2

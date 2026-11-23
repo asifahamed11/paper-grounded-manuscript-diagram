@@ -35,7 +35,7 @@ def main() -> int:
         parser.error("--start-page must be at least 1")
 
     try:
-        import fitz  # PyMuPDF
+        import pymupdf
     except ImportError:
         print("Missing dependency. Install with: python -m pip install PyMuPDF", file=sys.stderr)
         return 2
@@ -44,41 +44,35 @@ def main() -> int:
     stem = safe_name(args.pdf.stem)
 
     try:
-        document = fitz.open(args.pdf)
-        total_pages = len(document)
-        end_page = total_pages if args.end_page is None else args.end_page
-        if end_page < args.start_page or end_page > total_pages:
-            parser.error(f"Page range must be within 1..{total_pages}")
-
         image_count = 0
         render_count = 0
         scale = args.dpi / 72.0
-        matrix = fitz.Matrix(scale, scale)
+        matrix = pymupdf.Matrix(scale, scale)
+        with pymupdf.open(args.pdf) as document:
+            total_pages = len(document)
+            end_page = total_pages if args.end_page is None else args.end_page
+            if end_page < args.start_page or end_page > total_pages:
+                parser.error(f"Page range must be within 1..{total_pages}")
 
-        for page_number in range(args.start_page, end_page + 1):
-            page = document[page_number - 1]
-            page_path = args.output_dir / f"{stem}_page_{page_number:03d}.png"
-            pixmap = page.get_pixmap(matrix=matrix, alpha=False)
-            pixmap.save(page_path)
-            render_count += 1
+            for page_number in range(args.start_page, end_page + 1):
+                page = document[page_number - 1]
+                page_path = args.output_dir / f"{stem}_page_{page_number:03d}.png"
+                page.get_pixmap(matrix=matrix, alpha=False).save(page_path)
+                render_count += 1
 
-            for image_index, image_info in enumerate(page.get_images(full=True), start=1):
-                xref = image_info[0]
-                extracted = document.extract_image(xref)
-                extension = extracted.get("ext", "bin")
-                image_path = args.output_dir / (
-                    f"{stem}_page_{page_number:03d}_image_{image_index:02d}.{extension}"
-                )
-                image_path.write_bytes(extracted["image"])
-                image_count += 1
-
-        document.close()
+                for image_index, image_info in enumerate(page.get_images(full=True), start=1):
+                    extracted = document.extract_image(image_info[0])
+                    if not extracted:
+                        continue
+                    extension = extracted.get("ext", "bin")
+                    image_path = args.output_dir / (
+                        f"{stem}_page_{page_number:03d}_image_{image_index:02d}.{extension}"
+                    )
+                    image_path.write_bytes(extracted["image"])
+                    image_count += 1
     except Exception as exc:
         print(f"Could not process PDF: {exc}", file=sys.stderr)
         return 1
-    finally:
-        if 'document' in locals():
-            document.close()
 
     print(f"Rendered {render_count} page(s) and extracted {image_count} embedded image(s).")
     print(f"Output directory: {args.output_dir.resolve()}")

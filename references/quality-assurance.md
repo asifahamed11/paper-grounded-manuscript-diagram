@@ -67,9 +67,9 @@ Do not mark a check as passed merely because a script ran without an error. Scri
 ## 6. Separate evidence layers
 
 - Schema check: valid coordinates, IDs and references only.
-- Renderer geometry: measured label bounds, node overlap, edge endpoints/obstacles, contrast and minimum font size. Use the current `-qa.json`; failed renders may leave older successful files in the directory.
+- Renderer geometry: measured label bounds, node overlap, edge sides, route crossings, obstacles, contrast and minimum font size. Check the current `-qa.json` for status, source traceability and artifact hashes. Earlier runs are archived when the stem is reused.
 - SVG structure: positive dimensions/viewBox, static local resources and editable-text presence. This does not establish readable visual geometry.
-- Visual review: open both full preview and print-size output; record who/what inspected it and concrete remaining defects. Check arrow crossings manually; the helper does not detect every route-route crossing.
+- Visual review: open both full preview and print-size output. Check grouping, typography, interrupted or ambiguous paths and the meaning of any allowed crossing. Inspect the native diagram separately when delivering one.
 - Scientific/literature review: compare each element with the supplied method and inspected source locators. Neither helper performs this step.
 
 Regression checks should call the actual validator/renderer, reject deliberately broken inputs and check real export dimensions/text. Tests that only parse XML with a separate standard-library function do not test this skill's validator.

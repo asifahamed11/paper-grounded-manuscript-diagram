@@ -60,6 +60,18 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
     return sorted(scored, key=lambda x: x["weighted_score"], reverse=True)
 
 
+def reviewed_figures(scored):
+    """Rank already inspected figures by figure fit, then topic fit and triage score."""
+    reviewed = [
+        item for item in scored
+        if str(item.get('figure_inspected', '')).strip().lower() in ('true', 'yes', '1')
+        and isinstance(item.get('figure_locator'), str) and item['figure_locator'].strip()
+    ]
+    return sorted(reviewed, key=lambda item: (
+        to_float(item.get('figure_relevance')), to_float(item.get('relevance')), item['weighted_score']
+    ), reverse=True)
+
+
 def load_records(path: Path) -> list[dict[str, Any]]:
     if path.suffix.lower() == ".json":
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -91,6 +103,8 @@ def main() -> int:
     parser.add_argument("input", type=Path, help="Input .csv or .json candidate list")
     parser.add_argument("--output", type=Path, default=Path("ranked-papers.csv"), help="Output CSV path")
     parser.add_argument("--year", type=int, default=date.today().year, help="Reference year for recency scoring")
+    parser.add_argument("--reviewed-only", action="store_true",
+                        help="Select flagged inspected figures with a locator, prioritising figure relevance")
     args = parser.parse_args()
 
     if not args.input.exists():
@@ -99,6 +113,10 @@ def main() -> int:
     try:
         records = load_records(args.input)
         ranked = calculate_scores(records, current_year=args.year)
+        if args.reviewed_only:
+            ranked = reviewed_figures(ranked)
+            if not ranked:
+                raise ValueError('No inspected figures with a figure_locator were supplied.')
         write_csv(ranked, args.output)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

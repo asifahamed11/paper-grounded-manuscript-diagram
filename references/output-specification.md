@@ -18,6 +18,8 @@ If another format is more editable for the user, include it:
 
 Do not claim a file is editable unless the format and contents support editing.
 
+Use the native draw.io option for editable connections, and lossless TIFF when required by the venue. Keep the original JSON and inspect the native layout before sharing it. Include the current QA receipt and method source locators with the author's local editable package.
+
 With optional raster icons, SVG/PDF text and shapes remain vector while embedded icons are bitmap assets. Include the prepared icons, portable source paths and [asset provenance](icon-workflow.md). Do not call the entire figure wholly vector or claim that a generated PNG became an editable vector symbol.
 
 ## 2. Research evidence

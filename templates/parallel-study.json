@@ -22,7 +22,10 @@
       "fill": "blue",
       "text_color": "white",
       "font_pt": 10,
-      "bold": true
+      "bold": true,
+      "stroke_color": "#005A8D",
+      "align": "left",
+      "padding_pt": 5
     },
     {
       "id": "lane-b",
@@ -36,7 +39,11 @@
       "label": "B  Prospective follow-up",
       "fill": "orange",
       "font_pt": 10,
-      "bold": true
+      "bold": true,
+      "stroke_color": "#A97100",
+      "text_color": "black",
+      "align": "left",
+      "padding_pt": 5
     },
     {
       "id": "records",
@@ -49,7 +56,9 @@
       ],
       "label": "Observed records",
       "fill": "sky_blue",
-      "detail": "Source dates and definitions"
+      "detail": "Source dates and definitions",
+      "stroke_color": "#237399",
+      "text_color": "#102A3A"
     },
     {
       "id": "predictors",
@@ -62,7 +71,9 @@
       ],
       "label": "Predictor histories",
       "fill": "sky_blue",
-      "detail": "Matched place and time"
+      "detail": "Matched place and time",
+      "stroke_color": "#237399",
+      "text_color": "#102A3A"
     },
     {
       "id": "audit",
@@ -73,7 +84,8 @@
         38
       ],
       "label": "Qualify and align records",
-      "detail": "Check dates and non-reporting"
+      "detail": "Check dates and non-reporting",
+      "text_color": "#172D3C"
     },
     {
       "id": "training",
@@ -87,7 +99,8 @@
       "label": "Past-only fitting and tuning",
       "font_pt": 9.5,
       "bold": true,
-      "label_height_pt": 24
+      "label_height_pt": 24,
+      "text_color": "#172D3C"
     },
     {
       "id": "reference",
@@ -97,7 +110,8 @@
         107,
         26
       ],
-      "label": "Reference model"
+      "label": "Reference model",
+      "text_color": "#172D3C"
     },
     {
       "id": "candidate",
@@ -107,7 +121,8 @@
         107,
         26
       ],
-      "label": "Candidate model"
+      "label": "Candidate model",
+      "text_color": "#172D3C"
     },
     {
       "id": "evaluate",
@@ -118,7 +133,8 @@
         38
       ],
       "label": "Held-out temporal evaluation",
-      "detail": "Same dates and scoring rules"
+      "detail": "Same dates and scoring rules",
+      "text_color": "#172D3C"
     },
     {
       "id": "recruit",
@@ -129,7 +145,8 @@
         46
       ],
       "label": "Ethics and recruitment",
-      "detail": "Consent and eligibility"
+      "detail": "Consent and eligibility",
+      "text_color": "#172D3C"
     },
     {
       "id": "baseline",
@@ -140,7 +157,8 @@
         42
       ],
       "label": "Baseline",
-      "detail": "First assessment"
+      "detail": "First assessment",
+      "text_color": "#172D3C"
     },
     {
       "id": "followup",
@@ -151,7 +169,8 @@
         42
       ],
       "label": "Follow-up",
-      "detail": "Repeat assessment"
+      "detail": "Repeat assessment",
+      "text_color": "#172D3C"
     },
     {
       "id": "change",
@@ -162,7 +181,8 @@
         42
       ],
       "label": "Within-participant change",
-      "detail": "Record attrition and missingness"
+      "detail": "Record attrition and missingness",
+      "text_color": "#172D3C"
     },
     {
       "id": "context",
@@ -175,7 +195,9 @@
       ],
       "label": "Separate context interviews",
       "fill": "purple",
-      "detail": "Implementation requirements"
+      "detail": "Implementation requirements",
+      "stroke_color": "#8B496F",
+      "text_color": "black"
     },
     {
       "id": "interpret",
@@ -189,7 +211,9 @@
       "label": "Joint interpretation and research outputs",
       "fill": "green",
       "bold": true,
-      "font_pt": 10
+      "font_pt": 10,
+      "stroke_color": "#007655",
+      "text_color": "black"
     }
   ],
   "edges": [
@@ -398,7 +422,14 @@
       ],
       "label": "Dashed links: context for interpretation only; excluded from historical fitting.",
       "font_pt": 8.5,
-      "padding_pt": 2
+      "padding_pt": 2,
+      "text_color": "#385365"
     }
-  ]
+  ],
+  "style": {
+    "stroke_color": "#879AA6",
+    "connector_color": "#486170",
+    "line_width_pt": 0.82,
+    "title_detail_gap_pt": 3.2
+  }
 }
