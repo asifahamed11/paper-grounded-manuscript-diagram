@@ -10,9 +10,13 @@ This local workflow runs with Python and free libraries. The final files include
 
 ## Same prompt, two agent runs
 
-[![Two workflows from the same prompt, made without the skill on the left and with the revised skill on the right.](assets/readme/same-prompt-comparison.png)](assets/readme/same-prompt-comparison.png)
+An agent wrote a small hybrid retrieval experiment and its methods draft. Two runs used the same files and figure brief.
 
-Both panels used the same model and prompt. The left is the original baseline and the right was generated after updating the skill. Open the image for the full-size comparison. [Read the shared prompt](assets/readme/comparison-prompt.txt).
+[![Hybrid retrieval diagrams made from the same manuscript, code and prompt. The skill version uses original icons, distinct retrieval lanes and a separate path for relevance judgments.](assets/readme/same-prompt-comparison.png)](assets/readme/same-prompt-comparison.png)
+
+The baseline drew from the manuscript and code. The skill run also inspected figures from three published papers, drew five original icons and checked each step and arrow against the implementation. Open the image for the full-size comparison.
+
+[Shared prompt](assets/readme/comparison-prompt.txt) · [Manuscript](examples/manuscript-to-figure/manuscript.md) · [Runnable code](examples/manuscript-to-figure/retrieval.py) · [Figure review](examples/manuscript-to-figure/figure-review.md)
 
 ## Why use it?
 
