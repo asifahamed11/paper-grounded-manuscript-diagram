@@ -1,0 +1,7 @@
+Create one English-language methodology figure for a manuscript from the following illustrative study plan.
+
+The study compares two retrieval methods for a bilingual article archive. Begin with articles and relevance-labelled queries. Split the material by article into development and held-out test sets. Configure BM25 and hybrid retrieval in parallel using development data only. Evaluate both methods on the same locked test queries using nDCG@10 and Recall@10. Summarise paired differences and their uncertainty. Separately, reader interviews provide context for interpreting the results. The interviews do not inform splitting, tuning, or scoring.
+
+Show the shared test set entering the evaluation and the interview context entering interpretation only. Make the difference between these links clear in the figure. Preserve the stated method, keep the main path easy to follow, and use an informative label for each step. Use a 6.5-inch-wide white canvas, legible text of at least 8.5 pt, rounded shapes and connectors, and a restrained Okabe–Ito palette. Balance compactness with breathing room. Inspect the result at the intended width.
+
+Save a standalone figure.svg, a 300-DPI figure.png at the same physical size, and the editable source in the assigned output folder. Use original artwork and locally available free tools.

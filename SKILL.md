@@ -32,7 +32,9 @@ For paper-grounded mode, read [paper research](references/paper-research-protoco
 
 ## 2. Draw deliberately
 
-Default to a white canvas, local sans-serif font and a restrained Okabe–Ito palette unless the user/venue chooses otherwise. Apply one **rounded visual language** across the whole figure: rounded process/group/header corners, gently rounded decision/input outlines, curved data caps and smooth connector bends. Keep semantic shapes recognisable; rounded does not mean turning every node into a circle. Use thin connectors with rounded caps/joins and filleted bends rather than mixing hard elbows with soft boxes. Sharp connectors are an explicit user/venue override, not a random per-node default. Use colour for lanes or roles, not every box. Preserve title/detail hierarchy and inner padding. Use dashed edges only with an explained meaning.
+Default to a white canvas, local sans-serif font and a restrained Okabe–Ito palette unless the user or venue chooses otherwise. Use consistent rounded corners, curved data caps and filleted connector bends. Keep semantic shapes recognisable and respect any specified geometry.
+
+Align the main reading path through the figure and give its key stages enough typographic weight to stand out. Use a small set of recognisable accents for meaningful roles. When a side path is easy to lose, carry its node accent along the connector and keep its meaning clear in grayscale through routing, a label or a distinct line style. Increase connector weight independently of box borders if arrowheads or routes are faint at print size. Explain the meaning of any dashed link. See the [manuscript design guide](references/design-system.md).
 
 For a standard sequence, parallel lanes or eligibility branches, list the author's method stages and relationships in method JSON. Run `python scripts/plan_diagram.py method.json --output-dir output --stem figure-01` to get a measured first layout. Reflow using the exported source when the reading order or a corridor needs refinement. For loops, irregular networks and existing layouts, use an explicit layout or the user's editor.
 
@@ -60,7 +62,7 @@ Mermaid/Graphviz remain useful for quick topological sketches or when explicitly
 
 The renderer reports measured bounds, font sizes, contrast, overlapping nodes and labels, inward ports, crossing routes and paths through unrelated content. It also reports box occupancy, margins and spacing for visual review. Read the current QA receipt. Previous generated files move to history when you reuse a stem. Failed geometry produces a diagnostic image and an editable attempt. Use `--preview-only` for layout trials.
 
-Open the full-resolution preview **and print-size render**. Inspect hierarchy, source symbols, glyphs, arrowheads, line crossings, spacing and label density. A technically valid figure can still look poor. Fix the source and inspect the new export again. Report automated checks separately from visual, scientific and literature review; never convert a script exit code into “publication-ready”. See [QA](references/quality-assurance.md) for completion evidence.
+Open the full-resolution preview **and print-size render**. At a glance, identify the main path, the key stage and the destination of each supporting link. Check hierarchy, glyphs, arrowheads, spacing and label density. If a path is hard to trace or the compact layout feels tight, compare a reflowed draft at the same width before choosing the final composition. Re-export and inspect the selected layout. Report the automated checks and the visual, scientific and literature review actually performed. See [QA](references/quality-assurance.md) for completion evidence.
 
 ## 4. Deliver
 

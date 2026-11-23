@@ -20,7 +20,7 @@ Open `demo/method-print-size.png`, `demo/method.drawio` and `demo/method-qa.json
 | `title`, optional `description` | Identify the figure and describe its reading order or links. |
 | `canvas.width_pt` | Intended figure width in points. At 72 points per inch, 252 points equals 3.5 inches. The planner calculates height. |
 | `nodes` | Stable `id`, visible `label`, optional `detail`, and meaningful `shape`. |
-| `edges` | Links with `from` and `to` ids. Add `label` for an explicit branch choice. Preserve `arrow`, `style` and `meaning` from the method. |
+| `edges` | Links with `from` and `to` ids. Add `label` for an explicit branch choice. Preserve `arrow`, `style` and `meaning` from the method. Optional `color` helps a reader follow a distinct route. |
 | Optional `lanes` | Name lanes in left-to-right order and set each node's `lane`. This keeps a method track aligned over several ranks. |
 | Optional `direction` | Use `vertical`, `horizontal` or `auto`. Auto uses a horizontal layout only when short ranks and measured labels fit. |
 | Optional `icons` | One prepared local PNG with `id`, `path`, `node` and `alt` per destination. Candidate size is `size_pt` with optional explicit `placement`. |

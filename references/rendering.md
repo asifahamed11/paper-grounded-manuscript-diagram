@@ -11,11 +11,14 @@ The whole renderer defaults to soft corners and smooth connector bends. Process 
   "corner_radius_pt": 5,
   "connector_style": "rounded",
   "connector_radius_pt": 5,
-  "line_width_pt": 0.85
+  "line_width_pt": 0.85,
+  "connector_width_pt": 1.15
 }
 ```
 
 Connectors follow the supplied orthogonal corridors but replace each bend with a quadratic fillet. Short segments automatically limit the radius to half the adjacent segment lengths. Caps and joins are rounded. If a venue explicitly requires hard elbows, set `connector_style` to `orthogonal`; set `corner_radius_pt` to zero only for a deliberate square-shape override. Do not mix arbitrary per-node styles.
+
+Use `style.connector_width_pt` to adjust connector weight independently of box borders. Omit it to use `style.line_width_pt` for both. Use `style.connector_color` for the main paths and set optional `edge.color` to a palette name or `#RRGGBB` when an accent clarifies a route. Pair colour with visible labels, route geometry or line style. The native draw.io export carries both overrides.
 
 Specify ports on the named bounding-box edges. The renderer intersects that corridor with the **actual** rounded/sloping outline, preserving the horizontal/vertical direction. This prevents visible gaps at parallelograms, softened diamond tips and cylinder caps. The resolved ports are recorded in QA. A corridor that misses the shape fails instead of silently inventing a connection.
 

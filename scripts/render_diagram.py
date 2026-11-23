@@ -136,9 +136,12 @@ def validate_spec(spec):
         raise ValueError('canvas.font_family must be a nonempty font family')
     style=spec.get('style',{})
     if not isinstance(style,dict):raise ValueError('style must be an object')
-    for key,default in [('corner_radius_pt',5),('connector_radius_pt',5),('line_width_pt',.85)]:
-        value=number(style.get(key,default),'style.'+key)
-        if value < 0 or (key=='line_width_pt' and value==0):raise ValueError(f'style.{key} must be nonnegative, with positive line width')
+    for key, default in [('corner_radius_pt', 5), ('connector_radius_pt', 5)]:
+        if number(style.get(key, default), f'style.{key}') < 0:
+            raise ValueError(f'style.{key} must be nonnegative')
+    for key in ('line_width_pt', 'connector_width_pt'):
+        if number(style.get(key, .85), f'style.{key}') <= 0:
+            raise ValueError(f'style.{key} must be positive')
     if style.get('connector_style','rounded') not in ('rounded','orthogonal'):
         raise ValueError('connector_style must be rounded or orthogonal')
     color(style.get('stroke_color', 'black'))
@@ -197,6 +200,8 @@ def validate_spec(spec):
                 raise ValueError(f"Edge {eid} must use nonzero orthogonal segments")
         if edge.get("style", "solid") not in ("solid", "dashed"):
             raise ValueError(f"Edge {eid} style must be solid or dashed")
+        if 'color' in edge:
+            color(edge['color'])
         if edge.get('arrow','end') not in ('end','both','none'):
             raise ValueError(f'Edge {eid} arrow must be end, both or none')
         if 'label' in edge and (not isinstance(edge['label'], str) or not edge['label'].strip()):
@@ -653,6 +658,8 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
     design=spec.get('style',{});corner=design.get('corner_radius_pt',5)
     bend=design.get('connector_radius_pt',5) if design.get('connector_style','rounded')=='rounded' else 0
     line_width=design.get('line_width_pt',.85)
+    connector_width = design.get('connector_width_pt', line_width)
+    connector_color = design.get('connector_color', 'black')
     minimum=canvas.get('min_font_pt',8.5);base=canvas.get('font_pt',9)
     requested_font=canvas.get('font_family','DejaVu Sans')
     try:
@@ -669,6 +676,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
             'physical_inches':[width/72,height/72],'png_dpi':dpi,'errors':[],
             'warnings':[],'text':[],'icons':[],'exports':[],
             'style':{'corner_radius_pt':corner,'connector_radius_pt':bend,'line_width_pt':line_width,
+                     'connector_width_pt':connector_width,
                      'title_detail_gap_pt':design.get('title_detail_gap_pt',3.5)},
             'edge_geometry_check':'16 samples per quadratic corner; visual review remains required',
             'provenance':provenance(spec)}
@@ -767,7 +775,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                 style=(0,(3,2)) if e.get('style')=='dashed' else 'solid'
                 commands,samples=rounded_route(points,bend);routes.append((e,samples))
                 ax.add_patch(FancyArrowPatch(path=plot_path(commands),arrowstyle={'end':'-|>','both':'<|-|>','none':'-'}[e.get('arrow','end')],mutation_scale=6,
-                    color=color(design.get('connector_color', 'black')),linewidth=line_width,linestyle=style,
+                    color=color(e.get('color', connector_color)),linewidth=connector_width,linestyle=style,
                     shrinkA=0,shrinkB=.4,zorder=1,joinstyle='round',capstyle='round'))
                 for node in spec['nodes']:
                     if node['id'] in {e['from'],e['to']} or node.get('shape')=='group':continue

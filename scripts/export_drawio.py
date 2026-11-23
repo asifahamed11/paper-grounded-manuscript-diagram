@@ -44,8 +44,9 @@ def write_drawio(spec, report, destination, icon_paths, color):
     nodes = {node['id']: node for node in spec['nodes']}
     native_ids = {identifier: f'node-{i}' for i, identifier in enumerate(nodes)}
     fonts = {record['id']: record for record in report['text']}
-    connector_color = color(design.get('connector_color', 'black'))
+    connector_color = design.get('connector_color', 'black')
     line_width = pixels(design.get('line_width_pt', .85))
+    connector_width = pixels(design.get('connector_width_pt', design.get('line_width_pt', .85)))
     family = report['font_used'].replace(';', '').replace('=', '').replace('"', '').replace("'", '')
     font_stack = escape(f"'{family}',Arial,Helvetica,sans-serif", quote=True)
     round_style = '1' if design.get('connector_style','rounded') == 'rounded' else '0'
@@ -89,8 +90,9 @@ def write_drawio(spec, report, destination, icon_paths, color):
     for i, edge in enumerate(spec.get('edges', [])):
         identifier = str(edge.get('id', i))
         resolved = ports[identifier]
-        style = (f'edgeStyle=segmentEdgeStyle;rounded={round_style};strokeColor={connector_color};'
-                 f'strokeWidth={line_width};html=1;')
+        stroke = color(edge.get('color', connector_color))
+        style = (f'edgeStyle=segmentEdgeStyle;rounded={round_style};strokeColor={stroke};'
+                 f'strokeWidth={connector_width};html=1;')
         arrow = edge.get('arrow', 'end')
         style += f'endArrow={"none" if arrow == "none" else "blockThin"};'
         style += f'startArrow={"blockThin" if arrow == "both" else "none"};'

@@ -41,6 +41,16 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'source_refs'):
             renderer.validate_spec(spec)
 
+    def test_invalid_connector_overrides_fail_validation(self):
+        spec = method()
+        spec['style'] = {'connector_width_pt': 0}
+        with self.assertRaisesRegex(ValueError, 'connector_width_pt'):
+            renderer.validate_spec(spec)
+        spec['style']['connector_width_pt'] = 1.2
+        spec['edges'][0]['color'] = 'not-a-palette-name'
+        with self.assertRaisesRegex(ValueError, 'palette name'):
+            renderer.validate_spec(spec)
+
     def test_reviewed_figures_prioritise_inspected_relevant_evidence(self):
         candidates = calculate_scores([
             {'title':'Cited', 'citations':4000, 'relevance':90, 'figure_relevance':95, 'year':2026},
@@ -159,6 +169,31 @@ class RendererReliabilityTests(unittest.TestCase):
         self.assertEqual((edge.get('source'), edge.get('target')), ('node-0', 'node-1'))
         self.assertEqual(edge.find('mxGeometry').get('relative'),'1')
         self.assertIn('Records', cells['node-0'].get('value'))
+
+    def test_connector_overrides_preserve_color_and_weight_in_exports(self):
+        spec = method()
+        spec['canvas']['height_pt'] = 230
+        spec['style'] = {'line_width_pt': .75, 'connector_width_pt': 1.2, 'connector_color': 'blue'}
+        spec['nodes'].append({'id': 'c', 'label': 'Summary', 'box': [40, 178, 180, 37]})
+        spec['edges'][0]['color'] = 'vermillion'
+        spec['edges'].append({'from': 'b', 'to': 'c', 'points': [[130, 152], [130, 178]]})
+        report = self.render(spec, drawio=True)
+        self.assertEqual(report['status'], 'complete', report.get('errors'))
+
+        svg = ET.parse(self.out/'figure-01.svg')
+        path_styles = [path.get('style', '') for path in svg.iter('{http://www.w3.org/2000/svg}path')]
+        for stroke in ('#d55e00', '#0072b2'):
+            self.assertTrue(any(f'stroke: {stroke};' in style and 'stroke-width: 1.2;' in style
+                                for style in path_styles))
+        with Image.open(self.out/'figure-01.png') as image:
+            self.assertEqual(image.getpixel((542, 333))[:3], (213, 94, 0))
+            self.assertEqual(image.getpixel((542, 687))[:3], (0, 114, 178))
+
+        native = ET.parse(self.out/'figure-01.drawio')
+        styles = {cell.get('id'): cell.get('style') for cell in native.iter('mxCell')}
+        self.assertIn('strokeWidth=1.00000;', styles['node-0'])
+        self.assertIn('strokeColor=#D55E00;strokeWidth=1.60000;', styles['edge-0'])
+        self.assertIn('strokeColor=#0072B2;strokeWidth=1.60000;', styles['edge-1'])
 
     def test_checked_references_and_preview_mode(self):
         data = method()

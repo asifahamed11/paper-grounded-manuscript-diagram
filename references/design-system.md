@@ -22,6 +22,7 @@ Use the Okabe-Ito palette by default unless the user or target journal specifies
 - Avoid yellow text or thin yellow lines on white.
 - Do not rely on color alone to distinguish categories.
 - Use the same semantic color consistently across related panels.
+- Carry a branch accent along its route when doing so helps readers trace a distinct input, comparison, feedback or contextual link. Keep its source, destination and other meaning cues visible in grayscale.
 - Check the figure in grayscale when practical.
 
 ## 2. Shapes and semantics
@@ -55,7 +56,7 @@ Use a compact, balanced layout by default. Fit the canvas to the organised conte
 
 ## 5. Lines and arrows
 
-- Use consistent connector thickness and arrowhead style.
+- Use consistent connector thickness and arrowhead style. Let arrows carry the visual weight of the reading path when thinner box borders improve the hierarchy.
 - Default to rounded caps/joins and smooth filleted connector bends. Use orthogonal control corridors to keep routing clear, and curve the elbows consistently across every diagram type. Hard elbows require an explicit user/venue choice.
 - Use solid arrows for the primary flow unless another convention is required.
 - Use dashed or dotted lines only when their meaning is explained.
@@ -75,9 +76,11 @@ Use a compact, balanced layout by default. Fit the canvas to the organised conte
 
 ## 7. Visual tone
 
-Draw the reading order before deciding the shapes. Arrange the primary method as one continuous path with short, clear connectors. Give peer branches the same level of emphasis. Keep exceptions to one side when their roles support it. Use an edge label where two choices would otherwise be ambiguous.
+Draw the reading order before deciding the shapes. Keep consecutive stages on an aligned spine where the relationships allow it. Give peer branches the same level of emphasis. Keep supporting paths to one side when their roles support it, and show exactly where each enters the main path. Use an edge label where two choices would otherwise be ambiguous.
 
 For a small print figure, start with a white page, dark text and clear Okabe–Ito accents. Use solid accents or tints according to the role, importance and legibility of each element. Keep important panel colours visible at print size. Give every frame, icon and colour a specific job. Keep comparable gaps consistent, preserve enough space for branches and let typography lead the reading order. Use the source's terminology and read the final lines at the intended width.
+
+At that width, compare an alternative if the first layout looks flat, the arrows are faint or the main stages drift out of alignment. Compare layouts with the same labels and relationships. A slightly taller layout can give annotations and arrowheads the clearance they need.
 
 Aim for:
 - precise;

@@ -8,6 +8,12 @@ This local workflow runs with Python and free libraries. The final files include
 
 *An illustrative [parallel-study example](templates/parallel-study.json), rendered with the bundled local engine. This is a layout demonstration, not a research result.*
 
+## Same prompt, two agent runs
+
+[![Two workflows from the same prompt, made without the skill on the left and with the revised skill on the right.](assets/readme/same-prompt-comparison.png)](assets/readme/same-prompt-comparison.png)
+
+Both panels used the same model and prompt. The left is the original baseline and the right was generated after updating the skill. Open the image for the full-size comparison. [Read the shared prompt](assets/readme/comparison-prompt.txt).
+
 ## Why use it?
 
 - Start from stages and relationships or bring an existing layout.
