@@ -2,7 +2,19 @@
 
 ## 1. Palette
 
-Use the Okabe-Ito palette by default unless the user or target journal specifies another palette.
+Follow the user or journal palette when specified. Otherwise, choose the palette that suits the figure.
+
+| Palette | Use |
+|---|---|
+| Paul Tol Muted | Research frameworks, methodology diagrams, and conceptual models with several categories. |
+| Okabe–Ito | General default for scientific figures, especially statistical comparisons, experimental results, and labelled categories. |
+| Paul Tol Pale | Light fills for text-heavy PRISMA diagrams, research workflows, and methodology flowcharts. Keep labels and connectors dark. |
+
+### Paul Tol Muted
+
+`#CC6677` · `#332288` · `#DDCC77` · `#117733` · `#88CCEE` · `#882255` · `#44AA99` · `#999933` · `#AA4499`
+
+### Okabe–Ito
 
 | Role | Color | Hex |
 |---|---|---|
@@ -14,6 +26,12 @@ Use the Okabe-Ito palette by default unless the user or target journal specifies
 | Alert / emphasis | Vermillion | `#D55E00` |
 | Secondary category | Reddish purple | `#CC79A7` |
 | Caution accent | Yellow | `#F0E442` |
+
+### Paul Tol Pale
+
+`#AACCEE` · `#CCEEFF` · `#BBDDBB` · `#EEEEBB` · `#FFBBCC` · `#EEBBDD` · `#DDDDDD`
+
+Use these hex values in the renderer's colour fields.
 
 ### Palette rules
 
@@ -78,7 +96,7 @@ Use a compact, balanced layout by default. Fit the canvas to the organised conte
 
 Draw the reading order before deciding the shapes. Keep consecutive stages on an aligned spine where the relationships allow it. Give peer branches the same level of emphasis. Keep supporting paths to one side when their roles support it, and show exactly where each enters the main path. Use an edge label where two choices would otherwise be ambiguous.
 
-For a small print figure, start with a white page, dark text and clear Okabe–Ito accents. Use solid accents or tints according to the role, importance and legibility of each element. Keep important panel colours visible at print size. Give every frame, icon and colour a specific job. Keep comparable gaps consistent, preserve enough space for branches and let typography lead the reading order. Use the source's terminology and read the final lines at the intended width.
+For a small print figure, start with a white page, dark text and clear accents from the chosen palette. Use solid accents or tints according to the role, importance and legibility of each element. Keep important panel colours visible at print size. Give every frame, icon and colour a specific job. Keep comparable gaps consistent, preserve enough space for branches and let typography lead the reading order. Use the source's terminology and read the final lines at the intended width.
 
 At that width, compare an alternative if the first layout looks flat, the arrows are faint or the main stages drift out of alignment. Compare layouts with the same labels and relationships. A slightly taller layout can give annotations and arrowheads the clearance they need.
 

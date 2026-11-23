@@ -32,7 +32,7 @@ For paper-grounded mode, read [paper research](references/paper-research-protoco
 
 ## 2. Draw deliberately
 
-Default to a white canvas, local sans-serif font and a restrained Okabe–Ito palette unless the user or venue chooses otherwise. Use consistent rounded corners, curved data caps and filleted connector bends. Keep semantic shapes recognisable and respect any specified geometry.
+Default to a white canvas and a local sans-serif font. Follow the user or venue palette when specified. Otherwise, choose [Okabe–Ito for general scientific figures, Paul Tol Muted for categorical research diagrams, or Paul Tol Pale for text-heavy flowcharts](references/design-system.md#1-palette). Use consistent rounded corners, curved data caps and filleted connector bends. Keep semantic shapes recognisable and respect any specified geometry.
 
 Align the main reading path through the figure and give its key stages enough typographic weight to stand out. Use a small set of recognisable accents for meaningful roles. When a side path is easy to lose, carry its node accent along the connector and keep its meaning clear in grayscale through routing, a label or a distinct line style. Increase connector weight independently of box borders if arrowheads or routes are faint at print size. Explain the meaning of any dashed link. See the [manuscript design guide](references/design-system.md).
 
