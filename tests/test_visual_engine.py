@@ -14,6 +14,12 @@ from scripts import vector_icons
 
 ROOT = Path(__file__).resolve().parents[1]
 
+try:
+    import matplotlib
+    HAS_MPL = True
+except ImportError:
+    HAS_MPL = False
+
 
 def minimal_spec():
     return {
@@ -70,6 +76,7 @@ class VisualEngineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             renderer.validate_spec(spec)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_theme_recorded_in_report(self):
         spec = minimal_spec()
         spec['style'] = {'theme': 'neurips-soft'}
@@ -85,6 +92,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertTrue(report_shadow['style']['shadow'])
 
     # 2. Font Auto
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_font_family_auto_resolves_and_renders(self):
         name, path = themes.resolve_font('auto')
         self.assertIsInstance(name, str)
@@ -98,6 +106,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertEqual(report['font_used'], name)
 
     # 3. Vector Card Elevation (Shadow)
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_card_shadow_elevation(self):
         spec = minimal_spec()
         spec['style'] = {'shadow': True}
@@ -107,6 +116,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertIn('test-fig.eps', report['exports'])
 
     # 4. Accent Stripes
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_accent_stripe_padding_and_validation(self):
         spec = minimal_spec()
         spec['nodes'][0]['accent'] = 'left'
@@ -129,6 +139,7 @@ class VisualEngineTests(unittest.TestCase):
             renderer.validate_spec(bad_grp)
 
     # 5. Group Containers
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_group_container_fill_and_border_style(self):
         spec = minimal_spec()
         spec['nodes'][0]['box'] = [20, 45, 100, 40]
@@ -149,6 +160,7 @@ class VisualEngineTests(unittest.TestCase):
             renderer.validate_spec(bad_spec)
 
     # 6. Badges
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_badge_rendering_and_contrast_checks(self):
         spec = minimal_spec()
         spec['nodes'][0]['badge'] = 'INPUT'
@@ -171,6 +183,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertTrue(any('Badge a:badge contrast' in e for e in bad_report['errors']))
 
     # 7. Arrow Scale & Crossing Jump
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_arrow_scale_and_crossing_jump(self):
         spec = {
             'title': 'Crossing Test',
@@ -195,6 +208,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertEqual(report['style']['arrow_scale'], 7.5)
 
     # 8. Legend
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_legend_rendering_and_collision(self):
         spec = minimal_spec()
         spec['legend'] = {
@@ -229,6 +243,7 @@ class VisualEngineTests(unittest.TestCase):
             self.assertTrue(svg.startswith('<svg'))
             self.assertTrue(uri.startswith('data:image/svg+xml;base64,'))
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_vector_icon_rendering_does_not_flag_raster(self):
         spec = minimal_spec()
         spec['icons'] = [
@@ -240,6 +255,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertFalse(report.get('raster_icons_in_vector_exports', False))
 
     # 10. Draw.io Parity
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_drawio_parity_with_container_fill_shadow_and_icons(self):
         spec = minimal_spec()
         spec['nodes'][0]['box'] = [20, 45, 100, 40]
@@ -268,6 +284,7 @@ class VisualEngineTests(unittest.TestCase):
         self.assertIn('legend-frame', content)
 
     # 11. Showcase Templates Pass Geometry Checks
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_bundled_showcase_templates(self):
         for tpl_name in ['ml-architecture.json', 'multi-panel-method.json']:
             with self.subTest(template=tpl_name):

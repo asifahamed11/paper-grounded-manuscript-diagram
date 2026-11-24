@@ -120,7 +120,6 @@ def paper_palette(node, shape):
 
 
 def plan(method, asset_dir=None, theme=None):
-    from PIL import Image
     if not isinstance(method, dict) or not isinstance(method.get('nodes'), list) or not method['nodes']:
         raise ValueError('Supply a method object with a nonempty nodes list')
     if not isinstance(method.get('edges', []), list):

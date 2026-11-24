@@ -7,7 +7,13 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
-from matplotlib.path import Path as MplPath
+try:
+    import matplotlib
+    from matplotlib.path import Path as MplPath
+    HAS_MPL = True
+except ImportError:
+    MplPath = None
+    HAS_MPL = False
 
 from scripts import render_diagram as renderer
 from scripts import themes
@@ -45,6 +51,7 @@ class RendererHardeningTests(unittest.TestCase):
     def draw(self, spec, **kwargs):
         return renderer.render(spec, self.out, stem='test-hardening', dpi=150, **kwargs)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_plos_one_profile_with_legend_does_not_raise_keyerror(self):
         spec = minimal_spec()
         spec['canvas']['font_family'] = 'Arial'
@@ -60,7 +67,22 @@ class RendererHardeningTests(unittest.TestCase):
         }
         try:
             report = renderer.render(spec, self.out, stem='plos-legend-test', profile='plos-one', dpi=300)
-            self.assertTrue(report['passed_geometry_checks'], report.get('errors'))
+            self.assertIsNotNone(report)
+            from matplotlib import font_manager
+            has_plos_font = False
+            try:
+                font_manager.findfont('Arial', fallback_to_default=False)
+                has_plos_font = True
+            except Exception:
+                try:
+                    font_manager.findfont('Times New Roman', fallback_to_default=False)
+                    has_plos_font = True
+                except Exception:
+                    has_plos_font = False
+            if has_plos_font:
+                self.assertTrue(report['passed_geometry_checks'], report.get('errors'))
+            else:
+                self.assertTrue(any('PLOS One profile needs an installed Arial, Times New Roman or Symbol font' in e for e in report.get('errors', [])))
         except KeyError as e:
             self.fail(f"render() raised KeyError: {e}")
 
@@ -73,6 +95,7 @@ class RendererHardeningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             renderer.validate_spec(spec)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_single_label_badge_and_accent_padding(self):
         spec = minimal_spec()
         spec['nodes'][0]['accent'] = 'left'
@@ -82,6 +105,7 @@ class RendererHardeningTests(unittest.TestCase):
         self.assertTrue(report['passed_geometry_checks'])
         self.assertEqual(len(report['errors']), 0)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_single_label_title_icon_with_badge_and_accent_no_double_inset(self):
         spec = minimal_spec()
         spec['nodes'][0]['accent'] = 'left'
@@ -93,6 +117,7 @@ class RendererHardeningTests(unittest.TestCase):
         self.assertTrue(report['passed_geometry_checks'])
         self.assertEqual(len(report['errors']), 0)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_single_label_badge_collision_detection(self):
         spec = minimal_spec()
         spec['canvas']['font_pt'] = 14
@@ -105,6 +130,7 @@ class RendererHardeningTests(unittest.TestCase):
         self.assertFalse(report['passed_geometry_checks'])
         self.assertTrue(any('badge' in err.lower() for err in report['errors']))
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_badge_corner_clearance_input_terminator(self):
         spec = minimal_spec()
         spec['nodes'][0]['shape'] = 'input'
@@ -114,6 +140,7 @@ class RendererHardeningTests(unittest.TestCase):
         report = self.draw(spec, preview_only=True)
         self.assertTrue(report['passed_geometry_checks'])
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_default_group_border_style_is_dashed(self):
         spec = minimal_spec()
         spec['nodes'][0]['box'] = [20, 60, 100, 40]
@@ -139,6 +166,7 @@ class RendererHardeningTests(unittest.TestCase):
         res = themes.apply_theme(malformed)
         self.assertEqual(res, malformed)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_crossing_jump_named_and_indexed_edges(self):
         spec = {
             'title': 'Crossing Jump Test',
@@ -158,6 +186,7 @@ class RendererHardeningTests(unittest.TestCase):
         report = self.draw(spec, preview_only=True)
         self.assertTrue(report['passed_geometry_checks'])
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_legend_edge_line_swatches(self):
         spec = minimal_spec()
         spec['legend'] = {
@@ -174,6 +203,7 @@ class RendererHardeningTests(unittest.TestCase):
         self.assertIn('Direct flow', svg_content)
         self.assertIn('Optional flow', svg_content)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_legend_edge_collision_and_slot_overflow(self):
         # 1. Edge crossing legend box
         spec = minimal_spec()
@@ -195,6 +225,7 @@ class RendererHardeningTests(unittest.TestCase):
         report2 = self.draw(spec2, preview_only=True)
         self.assertTrue(any('overflows allocated slot' in err for err in report2['errors']))
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_export_drawio_vector_icon_and_escaped_legend(self):
         spec = minimal_spec()
         spec['nodes'][0]['icon_space_pt'] = 24
@@ -218,6 +249,7 @@ class RendererHardeningTests(unittest.TestCase):
         # Check vector icon data uri
         self.assertIn('data:image/svg+xml;base64,', content)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_plan_supports_vector_icons(self):
         method = {
             'title': 'Icon Pipeline',
@@ -281,6 +313,7 @@ class CustomSvgIconsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             vector_icons.load_local_svg(p)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_parse_svg_path_curves(self):
         d = "M 10 10 Q 20 20 30 30 T 40 40 S 50 50 60 60 s 10 10 20 20 Z"
         path_obj = vector_icons.parse_svg_path(d)
@@ -288,6 +321,7 @@ class CustomSvgIconsTests(unittest.TestCase):
         self.assertIn(MplPath.CURVE3, path_obj.codes)
         self.assertIn(MplPath.CURVE4, path_obj.codes)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_render_diagram_pure_vector_with_svg_icon(self):
         svg_icon = self.dir / 'custom_icon.svg'
         svg_icon.write_text(
@@ -318,6 +352,7 @@ class CustomSvgIconsTests(unittest.TestCase):
         self.assertTrue((assets_dir / 'ic1.svg').exists())
 
 
+@unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
 class LayeredPlannerTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -536,6 +571,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
     def draw(self, spec, **kwargs):
         return renderer.render(spec, self.out, stem='test-grounding', dpi=150, **kwargs)
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_require_paper_figures_rejects_missing_or_insufficient_figure_sources(self):
         spec = minimal_spec()
         # 1. Zero sources
@@ -559,6 +595,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
             self.draw(spec, require_paper_figures=True)
         self.assertIn("Paper-grounded mode requires at least 2 inspected published figure sources", str(cm.exception))
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_require_paper_figures_accepts_two_verified_figures_and_reports_count(self):
         spec = minimal_spec()
         spec['sources'] = [
@@ -606,6 +643,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
             if p_good.exists():
                 p_good.unlink()
 
+    @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_borderless_legend_and_elongated_swatches(self):
         spec = minimal_spec()
         spec['legend'] = {
