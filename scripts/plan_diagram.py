@@ -10,14 +10,19 @@ import json
 from pathlib import Path
 import sys
 
-if __package__:
+try:
     from .render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
     from .themes import apply_theme, resolve_font, THEMES
     from .vector_icons import list_icons, load_local_svg
-else:
-    from render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
-    from themes import apply_theme, resolve_font, THEMES
-    from vector_icons import list_icons, load_local_svg
+except ImportError:
+    try:
+        from scripts.render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
+        from scripts.themes import apply_theme, resolve_font, THEMES
+        from scripts.vector_icons import list_icons, load_local_svg
+    except ImportError:
+        from render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
+        from themes import apply_theme, resolve_font, THEMES
+        from vector_icons import list_icons, load_local_svg
 
 
 MARGIN = 9
