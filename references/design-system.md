@@ -33,6 +33,18 @@ Follow the user or journal palette when specified. Otherwise, choose the palette
 
 Use these hex values in the renderer's colour fields.
 
+### Publication Themes
+
+The system provides 5 ready-to-publish themes configured for specific academic venue requirements and visual standards:
+
+| Theme | Best For | Role Fills (`process`, `data`, `input`, `decision`) | Text / Detail / Connectors | Card Polish (All `shadow: false`, `arrow_scale: 7.0`) |
+|---|---|---|---|---|
+| `nature-clean` | Nature, Springer, Cell | `#FFFFFF`, `#EBF5F7`, `#F1F5F9`, `#FEF7E6` | `#0F172A` / `#475569` / `#334155` | Flat vector, 0.85 pt hairline borders, 4.5 pt corners |
+| `ieee-crisp` | IEEE Transactions, ACM | `#FFFFFF`, `#E8F1FA`, `#F1F5F9`, `#FEF7E0` | `#0F172A` / `#334155` / `#1E293B` | Flat vector, 0.85 pt structural borders, 3.5 pt corners |
+| `neurips-soft` | NeurIPS, ICML, ICLR | `#FFFFFF`, `#EEF2FF`, `#F0F9FF`, `#FEF3C7` | `#111827` / `#4B5563` / `#374151` | Flat vector, 0.85 pt borders, 4.5 pt corners, indigo/green tints |
+| `biomed-prisma` | PLOS ONE, Lancet, BMJ | `#FFFFFF`, `#EBF5FB`, `#F4F6F7`, `#FEF5E7` | `#1E293B` / `#475569` / `#475569` | Flat vector, calm clinical tints, 0.85 pt borders, 4.0 pt corners |
+| `print-mono` | B&W Print Proceedings | `#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB` | `#111827` / `#4B5563` / `#111827` | Grayscale-only, flat vector, 0.85 pt borders, 3.5 pt corners |
+
 ### Palette rules
 
 - Use two to four colors in most figures; use more only when categories require them.
@@ -50,6 +62,10 @@ Use these hex values in the renderer's colour fields.
 - Keep corner radii consistent across ordinary boxes and headers. Give decision/input silhouettes gently rounded vertices too; retain their role rather than replacing all shapes with circles.
 - Avoid excessive nested containers and decorative shapes.
 - Use borders sparingly and consistently.
+- **Accent stripes**: Use `node.accent: "left"` or `"top"` with `node.accent_color` to visually highlight stage entry points or distinct data modalities without overwhelming the card fill.
+- **Stage pill badges**: Use `node.badge` (e.g., `STAGE 1`, `STEP 2`, `INPUT`) anchored at the top-left to structure sequential multi-panel methods. Ensure `badge_fill` provides >= 4.5:1 contrast against white badge text.
+- **Group containers**: Use `shape: "group"` with `container_fill` (e.g. `#F8FAFC`) and `border_style: "dashed"` to demarcate sub-systems, pipelines, or logical clusters.
+- **Vector icons**: Use the built-in 24x24 vector icon library for semantic clarity (e.g. `database` for inputs, `cpu` for model layers, `shield` for verification, `dna` or `flask` for wet-lab assays). Avoid decorative clip-art.
 
 ## 3. Typography
 
@@ -116,3 +132,12 @@ Avoid:
 - unnecessary shadows;
 - over-saturated backgrounds;
 - decorative icons with no informational purpose.
+
+## 8. Human-Crafted Academic Aesthetic (Avoid the AI-Generated Look)
+
+Real top-journal figures (Nature, IEEE, NeurIPS, *Attention Is All You Need*) look human-crafted in Adobe Illustrator, Figma, or LaTeX TikZ. Avoid "AI-generated SaaS card" over-styling:
+1. **Flat, restrained, print-first:** Top-tier figures are flat vector schematics with clean pastel fills, crisp 0.8–1.0 pt borders, and generous alignment — **NEVER** stack drop shadows + SaaS corner badges + side accent stripes + UI icons all at once on every card.
+2. **Typography carries the hierarchy:** Use bold dark titles (`9.0–10.0 pt`) + smaller muted-slate subtitles (`detail_color: "#475569"`, `detail_font_pt: 8.0`) inside tight, well-proportioned boxes (typical height 34–44 pt, not bloated 65 pt cards).
+3. **Prefer clean flat rounded rectangles:** Use `process` rectangles with soft role-based pastel fills (like TikZ/Illustrator) for most pipeline stages; use 3D `data` cylinders or `decision` diamonds only when classical flowchart notation genuinely enhances clarity.
+4. **Restraint with icons & badges:** An icon-free, typography-led schematic is often the cleanest, most authoritative choice. If icons help, use at most 2–4 purposeful domain symbols (or custom domain `.svg` / AI art) — do **NOT** stamp a wireframe UI icon onto every single box. Reserve `badge` only for multi-panel labels like `(a)` / `(b)` or numbered stages, never SaaS status tags like `INPUT` / `EVAL`.
+5. **Clean geometry & compact legends:** Align boxes on a strict grid with consistent vertical/horizontal gaps (12–18 pt), use crisp orthogonal rounded connectors without unnecessary zigzags, and ensure every legend swatch matches the exact fill/stroke/line style actually drawn in the diagram.

@@ -1,0 +1,177 @@
+{
+  "title": "Deep Learning Architecture Pipeline",
+  "description": "End-to-end multimodal neural network with tokenization, self-attention backbone, and objective classification head.",
+  "canvas": {
+    "width_pt": 480,
+    "height_pt": 260,
+    "font_family": "auto",
+    "font_pt": 9,
+    "min_font_pt": 7.5,
+    "math": true
+  },
+  "style": {
+    "theme": "neurips-soft",
+    "corner_radius_pt": 6,
+    "line_width_pt": 0.85,
+    "connector_width_pt": 1.2,
+    "arrow_scale": 8.0,
+    "shadow": false,
+    "crossing_jump": true
+  },
+  "sources": [
+    {
+      "id": "transformer-arch",
+      "kind": "method",
+      "title": "Attention Is All You Need",
+      "locator": "Section 3.1, Figure 1"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input-tokens",
+      "shape": "input",
+      "box": [20, 50, 95, 48],
+      "label": "Raw Input",
+      "detail": "Multimodal tokens",
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "embed",
+      "shape": "process",
+      "box": [145, 50, 105, 48],
+      "label": "Token Embedding",
+      "detail": "\\( \\mathbf{z}_0 \\in \\mathbb{R}^{B \\times D} \\)",
+      "math": true,
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "backbone",
+      "shape": "group",
+      "box": [275, 15, 185, 175],
+      "label": "Transformer Backbone",
+      "container_fill": "#F8FAFC",
+      "border_style": "dashed"
+    },
+    {
+      "id": "attn",
+      "shape": "process",
+      "box": [290, 48, 155, 60],
+      "label": "Self-Attention",
+      "detail": "\\( \\text{Softmax}(QK^T) V \\)",
+      "math": true,
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "ffn",
+      "shape": "process",
+      "box": [290, 122, 155, 48],
+      "label": "Feed-Forward MLP",
+      "detail": "GELU + LayerNorm",
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "loss",
+      "shape": "terminator",
+      "box": [145, 145, 105, 50],
+      "label": "Objective Head",
+      "detail": "\\( \\mathcal{L}_{total} = \\mathcal{L}_{CE} + \\lambda \\mathcal{L}_{reg} \\)",
+      "math": true,
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "output",
+      "shape": "data",
+      "box": [20, 145, 95, 50],
+      "label": "Predictions",
+      "detail": "Softmax distribution",
+      "source_refs": ["transformer-arch"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-input-embed",
+      "from": "input-tokens",
+      "to": "embed",
+      "points": [[115, 74], [145, 74]],
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "e-embed-attn",
+      "from": "embed",
+      "to": "attn",
+      "points": [[250, 74], [270, 74], [270, 78], [290, 78]],
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "e-attn-ffn",
+      "from": "attn",
+      "to": "ffn",
+      "points": [[367, 108], [367, 122]],
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "e-ffn-loss",
+      "from": "ffn",
+      "to": "loss",
+      "points": [[290, 146], [270, 146], [270, 170], [250, 170]],
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "e-loss-output",
+      "from": "loss",
+      "to": "output",
+      "points": [[145, 170], [115, 170]],
+      "source_refs": ["transformer-arch"]
+    }
+  ],
+  "icons": [
+    {
+      "id": "icon-docs",
+      "vector_icon": "documents",
+      "node": "input-tokens",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Document and token input stream",
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "icon-attn",
+      "vector_icon": "neural_net",
+      "node": "attn",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Neural self-attention mechanism",
+      "source_refs": ["transformer-arch"]
+    },
+    {
+      "id": "icon-out",
+      "vector_icon": "chart_bar",
+      "node": "output",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Output prediction distribution",
+      "source_refs": ["transformer-arch"]
+    }
+  ],
+  "legend": {
+    "box": [20, 222, 440, 26],
+    "frame": false,
+    "items": [
+      {
+        "label": "Input & Data",
+        "fill": "#F0F9FF",
+        "stroke_color": "#0284C7"
+      },
+      {
+        "label": "Attention & Core",
+        "fill": "#EEF2FF",
+        "stroke_color": "#4F46E5"
+      },
+      {
+        "label": "Loss & Optimization",
+        "fill": "#FEF3C7",
+        "stroke_color": "#B45309"
+      }
+    ]
+  }
+}

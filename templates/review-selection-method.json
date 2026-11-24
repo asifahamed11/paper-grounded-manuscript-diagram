@@ -1,8 +1,16 @@
 {
   "title": "Study selection in a systematic review",
   "description": "An authoring example showing the screening, retrieval and eligibility stages of the PRISMA 2020 study selection workflow. The main path is on the left, with documented exits on the right.",
-  "canvas": {"width_pt": 348, "font_pt": 9, "min_font_pt": 8.5},
-  "lanes": ["selection", "recorded exits"],
+  "canvas": {
+    "width_pt": 348,
+    "font_pt": 9.2,
+    "min_font_pt": 8.5,
+    "font_family": "auto"
+  },
+  "lanes": [
+    "selection",
+    "recorded exits"
+  ],
   "sources": [
     {
       "id": "prisma-selection",
@@ -22,20 +30,148 @@
     }
   ],
   "nodes": [
-    {"id": "screen", "lane": "selection", "label": "Screen records", "detail": "Review titles and abstracts", "fill": "#D9ECF7", "stroke_color": "blue", "source_refs": ["prisma-reporting"]},
-    {"id": "retrieve", "lane": "selection", "label": "Seek reports", "detail": "Obtain full text", "source_refs": ["prisma-selection"]},
-    {"id": "screen-out", "lane": "recorded exits", "label": "Excluded at screening", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-selection"]},
-    {"id": "assess", "lane": "selection", "shape": "decision", "label": "Eligible?", "fill": "orange", "stroke_color": "#936600", "source_refs": ["prisma-selection"]},
-    {"id": "unavailable", "lane": "recorded exits", "label": "Reports not retrieved", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-selection"]},
-    {"id": "include", "lane": "selection", "shape": "terminator", "label": "Include studies", "detail": "Record associated reports", "fill": "green", "source_refs": ["prisma-selection"]},
-    {"id": "exclude", "lane": "recorded exits", "label": "Exclude reports", "detail": "Document reasons", "fill": "#F8EFE9", "stroke_color": "vermillion", "source_refs": ["prisma-reporting"]}
+    {
+      "id": "screen",
+      "lane": "selection",
+      "label": "Screen records",
+      "detail": "Review titles and abstracts",
+      "fill": "#EAF4FB",
+      "stroke_color": "#2B6CB0",
+      "source_refs": [
+        "prisma-reporting"
+      ],
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "retrieve",
+      "lane": "selection",
+      "label": "Seek reports",
+      "detail": "Obtain full text",
+      "source_refs": [
+        "prisma-selection"
+      ],
+      "fill": "#FFFFFF",
+      "stroke_color": "#94A3B8",
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "screen-out",
+      "lane": "recorded exits",
+      "label": "Excluded at screening",
+      "fill": "#FDF3F0",
+      "stroke_color": "#C2573A",
+      "source_refs": [
+        "prisma-selection"
+      ],
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "assess",
+      "lane": "selection",
+      "shape": "decision",
+      "label": "Eligible?",
+      "fill": "#FEF5E4",
+      "stroke_color": "#C27803",
+      "source_refs": [
+        "prisma-selection"
+      ],
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "unavailable",
+      "lane": "recorded exits",
+      "label": "Reports not retrieved",
+      "fill": "#FDF3F0",
+      "stroke_color": "#C2573A",
+      "source_refs": [
+        "prisma-selection"
+      ],
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "include",
+      "lane": "selection",
+      "shape": "terminator",
+      "label": "Include studies",
+      "detail": "Record associated reports",
+      "fill": "#E8F5EE",
+      "source_refs": [
+        "prisma-selection"
+      ],
+      "stroke_color": "#1E7E5C",
+      "text_color": "#0F172A"
+    },
+    {
+      "id": "exclude",
+      "lane": "recorded exits",
+      "label": "Exclude reports",
+      "detail": "Document reasons",
+      "fill": "#FDF3F0",
+      "stroke_color": "#C2573A",
+      "source_refs": [
+        "prisma-reporting"
+      ],
+      "text_color": "#0F172A"
+    }
   ],
   "edges": [
-    {"id": "seek", "from": "screen", "to": "retrieve", "source_refs": ["prisma-selection"]},
-    {"id": "screening-exit", "from": "screen", "to": "screen-out", "source_refs": ["prisma-selection"]},
-    {"id": "assess-retrieved", "from": "retrieve", "to": "assess", "source_refs": ["prisma-selection"]},
-    {"id": "retrieval-exit", "from": "retrieve", "to": "unavailable", "source_refs": ["prisma-selection"]},
-    {"id": "eligible", "from": "assess", "to": "include", "label": "Yes", "source_refs": ["prisma-selection"]},
-    {"id": "ineligible", "from": "assess", "to": "exclude", "label": "No", "source_refs": ["prisma-selection", "prisma-reporting"]}
-  ]
+    {
+      "id": "seek",
+      "from": "screen",
+      "to": "retrieve",
+      "source_refs": [
+        "prisma-selection"
+      ]
+    },
+    {
+      "id": "screening-exit",
+      "from": "screen",
+      "to": "screen-out",
+      "source_refs": [
+        "prisma-selection"
+      ]
+    },
+    {
+      "id": "assess-retrieved",
+      "from": "retrieve",
+      "to": "assess",
+      "source_refs": [
+        "prisma-selection"
+      ]
+    },
+    {
+      "id": "retrieval-exit",
+      "from": "retrieve",
+      "to": "unavailable",
+      "source_refs": [
+        "prisma-selection"
+      ]
+    },
+    {
+      "id": "eligible",
+      "from": "assess",
+      "to": "include",
+      "label": "Yes",
+      "source_refs": [
+        "prisma-selection"
+      ]
+    },
+    {
+      "id": "ineligible",
+      "from": "assess",
+      "to": "exclude",
+      "label": "No",
+      "source_refs": [
+        "prisma-selection",
+        "prisma-reporting"
+      ]
+    }
+  ],
+  "style": {
+    "theme": "biomed-prisma",
+    "detail_font_pt": 8.5,
+    "title_detail_gap_pt": 2.4,
+    "arrow_scale": 7.0,
+    "shadow": false
+  }
 }

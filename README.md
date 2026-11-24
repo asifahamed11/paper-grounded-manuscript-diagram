@@ -20,10 +20,14 @@ The baseline drew from the manuscript and code. The skill run also inspected fig
 
 ## Why use it?
 
-- Start from stages and relationships or bring an existing layout.
-- Link substantive stages and arrows to manuscript sections or other source locations.
-- Check text size, contrast, ports, crossings and spacing at the intended print width.
-- Edit the source in JSON, SVG or native draw.io. Use TIFF when the venue calls for it.
+- Start from stages and relationships or bring an existing layout, with support for skip-rank DAGs, feedback loops, and horizontal pipelines.
+- Apply 5 curated publication themes (`nature-clean`, `ieee-crisp`, `neurips-soft`, `biomed-prisma`, `print-mono`) and 7 journal-calibrated profiles (`ieee-single/double`, `nature-single/double`, etc.).
+- Enhance diagrams with a 3-tier icon system: host AI image cutouts, custom local `.svg` vector icons, and 30 built-in instant vector symbols.
+- Render crisp inline LaTeX math expressions (`\( ... \)` and opt-in `$...$`) with math-aware text wrapping.
+- Query and filter open-access literature via free Python stdlib paper fetching (OpenAlex & arXiv) with zero API keys.
+- Link substantive stages and arrows to manuscript sections or other source locations via `--require-sources`.
+- Check text size, WCAG contrast, ports, crossings and spacing at the intended print width.
+- Export to editable SVG, vector PDF, 600-DPI PNG, print-size PNG, native Draw.io, EPS, or lossless TIFF.
 
 ## Get started
 

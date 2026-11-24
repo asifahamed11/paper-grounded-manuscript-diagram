@@ -33,7 +33,7 @@ def method():
 
 class IconSpecTests(unittest.TestCase):
     def test_invalid_paths_and_outside_boxes_are_rejected_without_dependencies(self):
-        for path in ['../icon.png','https://example.com/icon.png','C:/icon.png','/icon.png','a\\icon.png','a.svg']:
+        for path in ['../icon.png','https://example.com/icon.png','C:/icon.png','/icon.png','a\\icon.png','a.jpg']:
             spec = method(); spec['icons'][0]['path'] = path
             with self.assertRaises(ValueError):R.validate_spec(spec)
         spec = method(); spec['icons'][0]['box'] = [250,0,20,20]
@@ -150,6 +150,59 @@ class CutoutTests(unittest.TestCase):
         with self.assertRaises(ValueError):P.prepare(self.source,self.output,mask=self.root/'mask.png')
         P.prepare(self.source,self.output)
         with self.assertRaises(ValueError):P.prepare(self.source,self.output)
+        # overwrite=True allows replacing the destination file
+        res = P.prepare(self.source, self.output, overwrite=True)
+        self.assertIn('output_sha256', res)
+        self.assertTrue(self.output.exists())
+        # but refusing to overwrite source itself still holds even with overwrite=True
+        with self.assertRaises(ValueError):P.prepare(self.source, self.source, overwrite=True)
+
+    def test_numpy_and_pure_python_cutout_equivalence(self):
+        # 1. Test unmatte_white
+        img_unmatte = Image.new('RGBA', (20, 20), (0, 114, 178, 128))
+        draw_u = ImageDraw.Draw(img_unmatte)
+        for i in range(10):
+            draw_u.rectangle((i, i, 19 - i, 19 - i), fill=(0, 114, 178, 25 * i))
+
+        orig_has_np = P.HAS_NUMPY
+        try:
+            P.HAS_NUMPY = True
+            np_unmatte = P.unmatte_white(img_unmatte)
+            P.HAS_NUMPY = False
+            py_unmatte = P.unmatte_white(img_unmatte)
+            self.assertEqual(np_unmatte.size, py_unmatte.size)
+            np_data = list(np_unmatte.getdata())
+            py_data = list(py_unmatte.getdata())
+            for (nr, ng, nb, na), (pr, pg, pb, pa) in zip(np_data, py_data):
+                self.assertLessEqual(abs(nr - pr), 1)
+                self.assertLessEqual(abs(ng - pg), 1)
+                self.assertLessEqual(abs(nb - pb), 1)
+                self.assertLessEqual(abs(na - pa), 1)
+
+            # 2. Test solid_matte with exact foreground linear interpolation
+            img_matte = Image.new('RGBA', (20, 20), (255, 255, 255, 255))
+            draw_m = ImageDraw.Draw(img_matte)
+            for i in range(10):
+                t = i / 9.0
+                r = round(255 * (1 - t) + 0 * t)
+                g = round(255 * (1 - t) + 114 * t)
+                b = round(255 * (1 - t) + 178 * t)
+                draw_m.rectangle((i, i, 19 - i, 19 - i), fill=(r, g, b, 255))
+
+            P.HAS_NUMPY = True
+            np_matte = P.solid_matte(img_matte, '#0072B2')
+            P.HAS_NUMPY = False
+            py_matte = P.solid_matte(img_matte, '#0072B2')
+            self.assertEqual(np_matte.size, py_matte.size)
+            np_m_data = list(np_matte.getdata())
+            py_m_data = list(py_matte.getdata())
+            for (nr, ng, nb, na), (pr, pg, pb, pa) in zip(np_m_data, py_m_data):
+                self.assertLessEqual(abs(nr - pr), 1)
+                self.assertLessEqual(abs(ng - pg), 1)
+                self.assertLessEqual(abs(nb - pb), 1)
+                self.assertLessEqual(abs(na - pa), 1)
+        finally:
+            P.HAS_NUMPY = orig_has_np
 
 
 @unittest.skipUnless(HAS_PIL and HAS_MPL, 'Optional rendering dependencies are not installed')

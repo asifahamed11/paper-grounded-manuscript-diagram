@@ -81,3 +81,41 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual({item['placement'] for item in candidates}, {'title','left','top'})
         detail = next(item for item in report['text'] if item['id']=='start:detail')
         self.assertEqual(' '.join(detail['text'].split()), method['nodes'][0]['detail'])
+
+    def test_planner_early_rejects_empty_whitespace_detail(self):
+        method = {
+            'title': 'Test',
+            'canvas': {'width_pt': 250},
+            'nodes': [{'id': 'a', 'label': 'A', 'detail': '   '}],
+        }
+        with self.assertRaisesRegex(ValueError, 'detail must be text'):
+            plan(method)
+
+    def test_planner_removes_label_when_creating_branch_note(self):
+        method = {
+            'title': 'Branch Test',
+            'canvas': {'width_pt': 250},
+            'nodes': [{'id': 'a', 'label': 'Start'}, {'id': 'b', 'label': 'End'}],
+            'edges': [{'from': 'a', 'to': 'b', 'label': 'Condition'}],
+        }
+        spec = plan(method)
+        self.assertNotIn('label', spec['edges'][0])
+        self.assertEqual(len(spec.get('annotations', [])), 1)
+        self.assertEqual(spec['annotations'][0]['label'], 'Condition')
+        with tempfile.TemporaryDirectory() as folder:
+            report = render(spec, folder, dpi=150, preview_only=True)
+        self.assertTrue(report['passed_geometry_checks'], report['errors'])
+
+    def test_planner_horizontal_clamping_avoids_vertical_segments(self):
+        method = {
+            'title': 'Clamp Test',
+            'canvas': {'width_pt': 250},
+            'nodes': [{'id': 'a', 'label': 'Node A'}, {'id': 'b', 'label': 'Node B'}],
+            'edges': [{'from': 'a', 'to': 'b', 'label': 'Option A (Approved)'}],
+        }
+        spec = plan(method)
+        note = spec['annotations'][0]
+        nx, ny, nw, nh = note['box']
+        edge = spec['edges'][0]
+        sx = edge['points'][0][0]
+        self.assertTrue(nx + nw <= sx or nx >= sx, f'Note [{nx}, {nx+nw}] overlaps vertical connector sx={sx}')

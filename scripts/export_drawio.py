@@ -15,7 +15,7 @@ SHAPES = {
     'decision': 'rhombus;rounded=1;',
     'input': 'shape=parallelogram;perimeter=parallelogramPerimeter;size=0.08;rounded=1;',
     'header': 'rounded=1;',
-    'group': 'rounded=1;dashed=1;verticalAlign=top;',
+    'group': 'container=1;collapsible=0;pointerEvents=0;rounded=1;dashed=1;verticalAlign=top;',
 }
 
 
@@ -51,41 +51,96 @@ def write_drawio(spec, report, destination, icon_paths, color):
     font_stack = escape(f"'{family}',Arial,Helvetica,sans-serif", quote=True)
     round_style = '1' if design.get('connector_style','rounded') == 'rounded' else '0'
     ports = {str(record['id']): record for record in report['resolved_ports']}
+    arc_size_px = pixels(design.get('corner_radius_pt', 5))
 
     def label_html(text_id, *, bold=False):
         record = fonts[text_id]
         label = escape(record['text']).replace('\n', '<br>')
         font_size = pixels(record['font_pt'])
         weight = 'bold' if bold else 'normal'
-        return f'<div style="font-family:{font_stack};font-size:{font_size}px;font-weight:{weight}">{label}</div>'
+        color_attr = ''
+        if text_id.endswith(':detail'):
+            node_id = text_id[:-7]
+            n = nodes.get(node_id, {})
+            detail_col = n.get('detail_color', design.get('detail_color'))
+            if detail_col:
+                color_attr = f'color:{color(detail_col)};'
+        return f'<div style="font-family:{font_stack};font-size:{font_size}px;font-weight:{weight};{color_attr}">{label}</div>'
+
+    # Map each non-group node to its enclosing group container (if any)
+    group_nodes = [node for node in spec['nodes'] if node.get('shape') == 'group']
+    enclosing_group = {}
+    for identifier, node in nodes.items():
+        if node.get('shape') == 'group':
+            continue
+        nx, ny, nw, nh = node['box']
+        candidates = []
+        for grp in group_nodes:
+            gx, gy, gw, gh = grp['box']
+            if (nx >= gx - 1e-4 and ny >= gy - 1e-4 and
+                nx + nw <= gx + gw + 1e-4 and ny + nh <= gy + gh + 1e-4):
+                candidates.append(grp)
+        if candidates:
+            chosen = min(candidates, key=lambda g: g['box'][2] * g['box'][3])
+            enclosing_group[identifier] = chosen
 
     # Draw containers first. Independently editable nodes retain their own labels.
     for identifier, node in sorted(nodes.items(), key=lambda pair: pair[1].get('shape') != 'group'):
         shape = node.get('shape', 'process')
         fg = color(node.get('text_color', 'black'))
         stroke = color(node.get('stroke_color', design.get('stroke_color', 'black')))
-        bg = 'none' if shape == 'group' else color(node.get('fill', 'white'))
-        style = (SHAPES[shape] + f'fillColor={bg};strokeColor={stroke};strokeWidth={line_width};'
+        if shape == 'group':
+            c_fill = node.get('container_fill')
+            bg = color(c_fill) if c_fill else 'none'
+            dash_override = 'dashed=0;' if node.get('border_style') == 'solid' else 'dashed=1;'
+        else:
+            bg = color(node.get('fill', 'white'))
+            dash_override = ''
+        has_shadow = (shape != 'group') and bool(node.get('shadow', design.get('shadow', False)))
+        shadow_style = 'shadow=1;' if has_shadow else ''
+        arc_style = f'absoluteArcSize=1;arcSize={arc_size_px};' if shape in ('process', 'header', 'group') else ''
+        base_shape = SHAPES[shape]
+        if shape == 'group' and dash_override:
+            base_shape = base_shape.replace('dashed=1;', dash_override)
+        style = (base_shape + arc_style + shadow_style + f'fillColor={bg};strokeColor={stroke};strokeWidth={line_width};'
                  f'fontFamily={family};fontColor={fg};html=1;whiteSpace=wrap;'
                  f'align={node.get("align", "center")};spacing=3;')
         if identifier+':title' in fonts:
             label = label_html(identifier+':title', bold=True) + label_html(identifier+':detail')
         else:
             label = label_html(identifier, bold=node.get('bold', False))
+
+        parent_group = enclosing_group.get(identifier)
+        if parent_group:
+            parent_id = native_ids[parent_group['id']]
+            gx, gy, _, _ = parent_group['box']
+            nx, ny, nw, nh = node['box']
+            node_bounds = (nx - gx, ny - gy, nw, nh)
+        else:
+            parent_id = '1'
+            node_bounds = node['box']
+
         # Copy the actual text positions into editable child cells when an icon
         # reserves part of the node, so native editing starts without collisions.
         attached = any(icon.get('node_id') == identifier for icon in report['icons'])
-        vertex(root, native_ids[identifier], '' if attached else label, style, node['box'])
+        vertex(root, native_ids[identifier], '' if attached else label, style, node_bounds, parent=parent_id)
         if attached:
             x, y, _, _ = node['box']
             text_ids = ([identifier+':title', identifier+':detail']
                         if identifier+':title' in fonts else [identifier])
-            text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align=center;'
+            text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align={node.get("align", "center")};'
                           f'verticalAlign=middle;spacing=0;fontFamily={family};fontColor={fg};')
             for j, text_id in enumerate(text_ids):
                 a, b, c, d = fonts[text_id]['bounds_pt']
+                col = fg
+                if text_id.endswith(':detail'):
+                    d_col = node.get('detail_color', design.get('detail_color'))
+                    if d_col:
+                        col = color(d_col)
+                child_text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align={node.get("align", "center")};'
+                                    f'verticalAlign=middle;spacing=0;fontFamily={family};fontColor={col};')
                 vertex(root, native_ids[identifier]+f'-text-{j}', label_html(text_id, bold=text_id.endswith(':title')),
-                       text_style, (a-x-1, b-y, c-a+2, d-b), parent=native_ids[identifier])
+                       child_text_style, (a-x-1, b-y, c-a+2, d-b), parent=native_ids[identifier])
 
     for i, edge in enumerate(spec.get('edges', [])):
         identifier = str(edge.get('id', i))
@@ -102,7 +157,19 @@ def write_drawio(spec, report, destination, icon_paths, color):
             x, y, w, h = nodes[edge[node_key]]['box']
             px, py = resolved[side]
             style += f'{port_name}X={(px-x)/w:.5f};{port_name}Y={(py-y)/h:.5f};{port_name}Perimeter=0;'
-        cell = ET.SubElement(root, 'mxCell', id=f'edge-{i}', edge='1', parent='1',
+        
+        edge_value = ''
+        if edge.get('label'):
+            edge_text_id = f'edge:{identifier}:label'
+            if edge_text_id in fonts:
+                edge_value = label_html(edge_text_id)
+            else:
+                edge_font_size = pixels(max(canvas.get('min_font_pt', 8.5), canvas.get('font_pt', 9) - 0.5))
+                edge_label_escaped = escape(edge['label']).replace('\n', '<br>')
+                edge_value = f'<div style="font-family:{font_stack};font-size:{edge_font_size}px;font-weight:normal">{edge_label_escaped}</div>'
+            style += 'labelBackgroundColor=#FFFFFF;'
+
+        cell = ET.SubElement(root, 'mxCell', id=f'edge-{i}', value=edge_value, edge='1', parent='1',
                              source=native_ids[edge['from']], target=native_ids[edge['to']], style=style)
         geometry = ET.SubElement(cell, 'mxGeometry', relative='1', **{'as': 'geometry'})
         if edge['points'][1:-1]:
@@ -119,9 +186,69 @@ def write_drawio(spec, report, destination, icon_paths, color):
         x, y, right, bottom = icon['bounds_pt']
         owner = icon.get('node_id')
         nx, ny = nodes[owner]['box'][:2] if owner else (0, 0)
-        payload = base64.b64encode(icon_paths[icon['id']].read_bytes()).decode('ascii')
-        style = f'shape=image;imageAspect=1;image=data:image/png,{payload};'
+        orig_icon = next((ic for ic in spec.get('icons', []) if ic.get('id') == icon.get('id')), icon)
+        if icon.get('vector_icon'):
+            try:
+                from .vector_icons import as_data_uri
+            except ImportError:
+                try:
+                    from scripts.vector_icons import as_data_uri
+                except ImportError:
+                    from vector_icons import as_data_uri
+            vcol = color(orig_icon.get('color', orig_icon.get('stroke_color', connector_color)))
+            payload = as_data_uri(icon['vector_icon'], stroke=vcol)
+            style = f'shape=image;imageAspect=1;image={payload};'
+        elif icon.get('format') == 'vector-svg' or str(orig_icon.get('path', '')).lower().endswith('.svg'):
+            svg_bytes = icon_paths[icon['id']].read_bytes()
+            b64_svg = base64.b64encode(svg_bytes).decode('ascii')
+            payload = f'data:image/svg+xml;base64,{b64_svg}'
+            style = f'shape=image;imageAspect=1;image={payload};'
+        else:
+            payload = base64.b64encode(icon_paths[icon['id']].read_bytes()).decode('ascii')
+            style = f'shape=image;imageAspect=1;image=data:image/png;base64,{payload};'
         vertex(root, f'icon-{i}', '', style, (x-nx, y-ny, right-x, bottom-y), parent=native_ids.get(owner, '1'))
+
+    if 'legend' in spec:
+        leg = spec['legend']
+        lx, ly, lw, lh = leg['box']
+        has_frame = leg.get('frame') is True
+        if has_frame:
+            leg_fill = color(leg.get('fill', '#FFFFFF'))
+            leg_stroke = color(leg.get('stroke_color', '#CBD5E1'))
+            vertex(root, 'legend-frame', '', f'rounded=1;fillColor={leg_fill};strokeColor={leg_stroke};strokeWidth={line_width};', (lx, ly, lw, lh))
+        else:
+            vertex(root, 'legend-frame', '', 'rounded=1;fillColor=none;strokeColor=none;', (lx, ly, lw, lh))
+        leg_items = leg.get('items', [])
+        if leg_items:
+            slot_w = (lw - 12) / len(leg_items)
+            line_swatch_w = 22.0
+            node_swatch_w = 11.0
+            node_swatch_h = 6.5
+            text_gap = 5.0
+            leg_font_pt = 7.5 if canvas.get('min_font_pt', 8.5) <= 8.5 else max(7.5, canvas.get('min_font_pt', 8.5) - 1.0)
+            leg_font_px = pixels(leg_font_pt)
+            for idx, it in enumerate(leg_items):
+                ix = lx + 6 + idx * slot_w
+                iy = ly + lh / 2
+                scol = color(it.get('color', it.get('fill', '#334E68')))
+                s_stroke = color(it.get('stroke_color', scol))
+                is_line = it.get('kind') == 'edge' or it.get('shape') == 'line'
+                swatch_w = line_swatch_w if is_line else node_swatch_w
+                if is_line:
+                    arrow = it.get('arrow', 'end')
+                    end_arr = 'classic' if arrow in ('end', 'both') else 'none'
+                    start_arr = 'classic' if arrow in ('start', 'both') else 'none'
+                    dash_str = 'dashed=1;' if it.get('style') == 'dashed' or it.get('border_style') == 'dashed' else ''
+                    l_style = f'edgeStyle=none;endArrow={end_arr};startArrow={start_arr};strokeColor={scol};strokeWidth=1.5;{dash_str}'
+                    cell = ET.SubElement(root, 'mxCell', id=f'legend-swatch-{idx}', value='', edge='1', parent='1', style=l_style)
+                    geom = ET.SubElement(cell, 'mxGeometry', relative='1', **{'as': 'geometry'})
+                    ET.SubElement(geom, 'mxPoint', x=pixels(ix), y=pixels(iy), **{'as': 'sourcePoint'})
+                    ET.SubElement(geom, 'mxPoint', x=pixels(ix + swatch_w), y=pixels(iy), **{'as': 'targetPoint'})
+                else:
+                    vertex(root, f'legend-swatch-{idx}', '', f'rounded=1;fillColor={scol};strokeColor={s_stroke};strokeWidth=1;', (ix, iy - node_swatch_h / 2, swatch_w, node_swatch_h))
+                escaped_text = escape(it['label']).replace('\n', '<br>')
+                val = f'<div style="font-family:{font_stack};font-size:{leg_font_px}px;color:{color(leg.get("text_color", "#334155"))}">{escaped_text}</div>'
+                vertex(root, f'legend-text-{idx}', val, f'text;strokeColor=none;fillColor=none;html=1;fontFamily={family};fontSize={leg_font_px};fontColor={color(leg.get("text_color", "#334155"))};', (ix + swatch_w + text_gap, iy - node_swatch_h / 2, slot_w - swatch_w - 4, node_swatch_h))
 
     ET.indent(file, space='  ')
     ET.ElementTree(file).write(destination, encoding='utf-8', xml_declaration=True)

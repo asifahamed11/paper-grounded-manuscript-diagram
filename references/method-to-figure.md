@@ -24,9 +24,10 @@ Open `demo/method-print-size.png`, `demo/method.drawio` and `demo/method-qa.json
 | Optional `lanes` | Name lanes in left-to-right order and set each node's `lane`. This keeps a method track aligned over several ranks. |
 | Optional `direction` | Use `vertical`, `horizontal` or `auto`. Auto uses a horizontal layout only when short ranks and measured labels fit. |
 | Optional `icons` | One prepared local PNG with `id`, `path`, `node` and `alt` per destination. Candidate size is `size_pt` with optional explicit `placement`. |
+| Optional `math` | Set `"math": true` (on canvas, node or edge) or use inline `\( ... \)` to render mathematical formulas without external LaTeX dependencies. |
 | Optional `sources`, `source_refs` | Put the document or code identity and locator beside the stages and links they support. |
 
-The planner measures wrapping and sizes nodes for the requested font. It lays out adjacent tiers of an acyclic workflow. Ranks can hold branches or aligned lanes. For a cycle, an arrow that skips a rank, a nonplanar network, or a narrow page with several competing branches, compose an explicit route in [the manual renderer](rendering.md) or split the figure. A geometry error includes the attempted specification for revision. Move nodes or change routes there while preserving the method and caption.
+The planner measures wrapping and sizes nodes for the requested font. It lays out adjacent tiers of an acyclic workflow, skip-rank DAG corridors, and cyclic feedback loops with outer return routes. Ranks can hold branches, aligned lanes, or horizontal left-to-right pipelines with vector icons and labels. Branch labels are dynamically spaced to prevent overlap with connector lines and nodes. Use `--drawio`, `--tiff`, `--eps`, or `--profile` (e.g. `ieee-single`, `springer-lncs`, `plos-one`) to generate matching manuscript exports. A geometry error includes the attempted specification for revision. Move nodes or change routes there while preserving the method and caption.
 
 If a draft already has `box` for each node and `points` for each edge, use `render_diagram.py` directly to retain the layout.
 
@@ -35,6 +36,8 @@ If a draft already has `box` for each node and `points` for each edge, use `rend
 Each `sources` record needs an `id`, `title` and `locator`. Optional `kind` distinguishes `method`, `figure`, `dataset`, `code` and `asset`. Use `source_refs` on a node or edge to name the records that support it. Record a paper's DOI or public URL when applicable. For style references add the actual figure locator and the specific convention adopted.
 
 `--require-sources` checks that named references exist and cover substantive nodes and edges. The QA report lists all links and missing references. Verify that the specified location supports the claim, numbers, role and arrow direction. A bibliography entry alone cannot establish that support. Keep unpublished evidence in the local project.
+
+`--require-paper-figures` enforces that at least 2 inspected published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, and verifiable `doi`/`url`/`pdf_url`) are present in `spec["sources"]`. Use it alongside `--require-sources` for every new manuscript diagram to ensure visual and methodological peer-reviewed literature grounding.
 
 ## Prefer a clean starting composition
 

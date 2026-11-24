@@ -48,6 +48,27 @@ class ScorePapersTests(unittest.TestCase):
             with p.open(encoding='utf-8-sig',newline='') as f:rows=list(csv.DictReader(f))
             self.assertEqual(rows[1]['doi'],'10.example/test')
 
+    def test_paper_matrix_template_headers_and_fallback(self):
+        module = load_script('score_papers', 'score_papers.py')
+        matrix_path = ROOT / 'templates' / 'paper-matrix.csv'
+        with matrix_path.open(encoding='utf-8-sig', newline='') as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames
+            rows = list(reader)
+        self.assertIn('figure_inspected', fieldnames)
+        self.assertIn('figure_locator', fieldnames)
+        idx_inspected = fieldnames.index('figure_inspected')
+        self.assertEqual(fieldnames[idx_inspected + 1], 'figure_locator')
+
+        items = [
+            {'title': 'Primary', 'figure_inspected': 'yes', 'figure_locator': 'Fig. 1', 'figure_relevance': 90, 'citations': 10, 'year': 2024},
+            {'title': 'Fallback', 'figures_inspected': 'yes', 'figure_locator': 'Fig. 2', 'figure_relevance': 80, 'citations': 5, 'year': 2024},
+            {'title': 'Not reviewed', 'figure_inspected': 'no', 'citations': 100, 'year': 2024},
+        ]
+        scored = module.calculate_scores(items, current_year=2026)
+        reviewed = module.reviewed_figures(scored)
+        self.assertEqual([r['title'] for r in reviewed], ['Primary', 'Fallback'])
+
 
 class SvgValidatorTests(unittest.TestCase):
     def test_valid_svg(self):
@@ -104,10 +125,10 @@ class OptionalHelperTests(unittest.TestCase):
             with Image.open(p/'sheet.png') as result:self.assertLessEqual(result.height,142)
 
     def test_pdf_end_page_zero_is_not_silently_all_pages(self):
-        try:import fitz
+        try:import pymupdf
         except ImportError:self.skipTest('Optional PyMuPDF not installed')
         with tempfile.TemporaryDirectory() as tmp:
-            p=Path(tmp)/'paper.pdf';d=fitz.open();d.new_page();d.save(p);d.close()
+            p=Path(tmp)/'paper.pdf';d=pymupdf.open();d.new_page();d.save(p);d.close()
             cmd=[sys.executable,str(ROOT/'scripts/extract_pdf_figures.py'),str(p),'--end-page','0','--output-dir',str(Path(tmp)/'out')]
             run=subprocess.run(cmd,capture_output=True,text=True);self.assertEqual(run.returncode,2)
 

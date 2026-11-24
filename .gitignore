@@ -9,4 +9,15 @@ extracted_figures/
 contact-sheet.png
 ranked-papers.csv
 diagram-output/
+preview-demo/
+comparison-demo/
+full-potential-test/
+user-test-output/
+.readme-build/
+demo/
+output/
+.history/
+*_test.csv
 .qa/
+repo*.md
+

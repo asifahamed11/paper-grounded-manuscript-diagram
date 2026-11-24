@@ -62,9 +62,15 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
 
 def reviewed_figures(scored):
     """Rank already inspected figures by figure fit, then topic fit and triage score."""
+    def _is_inspected(item):
+        val = item.get('figure_inspected')
+        if val is None or not str(val).strip():
+            val = item.get('figures_inspected', '')
+        return str(val).strip().lower() in ('true', 'yes', '1')
+
     reviewed = [
         item for item in scored
-        if str(item.get('figure_inspected', '')).strip().lower() in ('true', 'yes', '1')
+        if _is_inspected(item)
         and isinstance(item.get('figure_locator'), str) and item['figure_locator'].strip()
     ]
     return sorted(reviewed, key=lambda item: (

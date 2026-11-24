@@ -54,10 +54,10 @@ Read [density and whitespace](layout-density.md) for content-first composition. 
 
 ```json
 {"id":"records-to-audit", "from":"source", "to":"audit",
- "points":[[87,92],[87,110]], "style":"solid"}
+ "points":[[87,92],[87,110]], "style":"solid", "label":"Verified"}
 ```
 
-Give every edge named source/target nodes and an explicit route with at least two points. Route control points consist of nonzero horizontal/vertical segments; the renderer rounds their bends by default. First and last points must meet their named boxes. Make corridors for connectors; do not route through unrelated nodes or text. Obstacle/label checks use the drawn curves sampled at 16 points per bend, rather than checking only the unrounded controls. A merge can use two routes ending on the same target boundary. A dedicated junction may be represented by a small process node only when scientifically meaningful; avoid adding empty dummy methods.
+Give every edge named source/target nodes and an explicit route with at least two points. Edges may include an optional `label` string, which is rendered natively along the longest segment of the route, verified against collisions, and exported to Draw.io edges. Route control points consist of nonzero horizontal/vertical segments; the renderer rounds their bends by default. First and last points must meet their named boxes. Make corridors for connectors; do not route through unrelated nodes or text. Obstacle/label checks use the drawn curves sampled at 16 points per bend, rather than checking only the unrounded controls. A merge can use two routes ending on the same target boundary. A dedicated junction may be represented by a small process node only when scientifically meaningful; avoid adding empty dummy methods.
 
 The initial and final corridors must approach their named sides from outside each shape. An unexpected route crossing or overlap is an error, with its location recorded in QA. Shared fan-out or fan-in paths from the same port are allowed. If a crossing is deliberate, use `allowed_crossings` with `{"edges":["first-id","second-id"],"reason":"Explanation of the intended crossing"}` and clarify it in the figure. Review route readability at print size.
 
@@ -67,7 +67,7 @@ For `style: "dashed"`, include `meaning`, and explain that meaning in a visible 
 
 ## Optional local icons
 
-Read [the icon workflow](icon-workflow.md) before choosing/generating assets and comparing placement candidates. The renderer does not generate or remove backgrounds. Optional top-level `icons` records have `id`, `path`, `alt`, plus the chosen placement fields below. IDs use letters/digits/hyphens/underscores. Paths are relative local PNGs under the specification directory; URLs, absolute paths, parent traversal and symlink escapes are rejected. The asset must be a single-frame PNG with actual transparency and a clear transparent border, at most 16 megapixels. Native DPI must be at least 300 at the fitted physical placement. Scaling preserves aspect ratio.
+Read [the icon workflow](icon-workflow.md) before choosing/generating assets and comparing placement candidates. The renderer does not generate or remove backgrounds. Optional top-level `icons` records have `id`, `path`, `alt`, plus the chosen placement fields below. IDs use letters/digits/hyphens/underscores. Paths accept both local `.png` raster files and local `.svg` vector files under the specification directory (SVG icons must contain valid, safe vector path data); URLs, absolute paths, parent traversal and symlink escapes are rejected. Raster PNG assets must be single-frame PNGs with actual transparency and a clear transparent border, at most 16 megapixels. Native DPI must be at least 300 at the fitted physical placement. Scaling preserves aspect ratio.
 
 For an icon/title cluster use `node`, `placement: "title"`, `size_pt: [width,height]`, and optionally `gap_pt` (default 4). Omit `box` and `icon_space_pt`. Measured title width sets the cluster position; detail text uses the full inner width. The cluster and detail are centred together vertically. The selected node must use stacked text and one attached icon; an oversized cluster fails rather than adding height or shrinking content silently. This can avoid the wasted column and extra detail wrapping of a side strip.
 
@@ -75,17 +75,85 @@ For side/top placement use `node`, `placement: "left"`, `"right"` or `"top"`, a 
 
 The CLI resolves assets relative to the input JSON. Python callers pass `asset_dir=spec_path.parent` to `render(...)`. Successful source export copies prepared icons into `<stem>-assets/` and rewrites `<stem>-source.json` to refer to those copies, so the complete output folder is reproducible elsewhere. SVGs embed PNG data; no external links are required. PDF/SVG labels and geometry stay vector, but the icons remain raster. QA records native pixel size, fitted bounds, DPI, meaning and SHA-256. Keep original generation prompts/terms separately; the renderer cannot verify them.
 
+## Mathematical notation
+
+Mathematical formulas use Matplotlib mathtext (100% free, zero external LaTeX install required). By default `parse_math=False` is active so literal currency strings such as `Cost $100 and $200` pass through unchanged. Math rendering is opt-in:
+- Set `"math": true` on a node, edge or annotation (or `canvas.math: true` across the figure).
+- Or use explicit inline delimiters: `\( \alpha + \beta \)`. The renderer safely translates `\( ... \)` to `$...$` while preserving literal `$` outside formulas.
+
+## Publication themes and typography
+
+The renderer includes 5 curated, publication-grade academic themes:
+- `nature-clean`: Deep ink (`#0F172A`), muted slate detail (`#475569`, `8.0 pt`), fills (`process`: `#FFFFFF`, `data`: `#EBF5F7`, `input`: `#F1F5F9`, `decision`: `#FEF7E6`, `terminator`: `#EAF6EE`), strokes (`#94A3B8`, `#2B7A8B`, `#64748B`, `#C27803`, `#1E7E5C`), connectors `#334155` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
+- `ieee-crisp`: High-contrast navy ink (`#0F172A`), steel detail (`#334155`, `8.0 pt`), fills (`#FFFFFF`, `#E8F1FA`, `#F1F5F9`, `#FEF7E0`, `#E8F5E9`), strokes (`#334155`, `#1D4ED8`, `#4A6572`, `#B45309`, `#15803D`), connectors `#1E293B` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 3.5`.
+- `neurips-soft`: Modern ML/AI aesthetic with charcoal ink (`#111827`), muted detail (`#4B5563`, `8.0 pt`), pastel fills (`#FFFFFF`, `#EEF2FF`, `#F0F9FF`, `#FEF3C7`, `#ECFDF5`), strokes (`#94A3B8`, `#4F46E5`, `#0284C7`, `#B45309`, `#047857`), connectors `#374151` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
+- `biomed-prisma`: Clinical slate ink (`#1E293B`), detail (`#475569`, `8.0 pt`), soft tints (`#FFFFFF`, `#EBF5FB`, `#F4F6F7`, `#FEF5E7`, `#EAFAF1`), strokes (`#94A3B8`, `#0284C7`, `#0D9488`, `#EA580C`, `#16A34A`), connectors `#475569` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.0`.
+- `print-mono`: 100% grayscale publication theme with ink (`#111827`), detail (`#4B5563`, `8.0 pt`), fills (`#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB`), strokes (`#374151`, `#111827`), connectors `#111827` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 3.5`.
+
+Specify a theme in the spec via `"style": {"theme": "nature-clean"}` or on the CLI via `--theme <name>`. Theme colors provide defaults; any explicit node or style attributes in the JSON specification always take precedence. The renderer also supports `style.detail_color` and `style.detail_font_pt` (default `8.0 pt` across all 5 themes) to tune subtitle typography independently.
+
+Set `"canvas": {"font_family": "auto"}` to automatically detect and select the best installed sans-serif font from `['Inter', 'IBM Plex Sans', 'Liberation Sans', 'Arial', 'Helvetica', 'Segoe UI', 'DejaVu Sans']`.
+
+## Visual polish: cards, containers, and badges
+
+- **Card Elevation (`style.shadow` or `node.shadow: true`)**: Draws a restrained vector shadow patch (+1.2 pt x, +1.4 pt y) in solid cool gray `#E8EEF2` (zorder 1.5) behind non-group nodes. 100% vector, zero transparency warnings in EPS/PDF.
+- **Role Accent Stripes (`node.accent: "left" | "top"`, `node.accent_color`)**: Renders a crisp 3.0 pt saturated indicator stripe along the node edge, shifting content padding +3.5 pt to avoid text crowding.
+- **Tinted Group Containers (`node.container_fill`, `node.border_style: "solid" | "dashed"`)**: Allows group nodes to have a soft tinted background (e.g. `#F8FAFC`). When `container_fill` is omitted, group containers remain completely transparent.
+- **Stage Pill Badges (`node.badge`, `node.badge_fill`, `node.badge_text_color`)**: Displays a compact metadata pill badge (e.g. `STAGE 1`, `INPUT`) anchored at the top-left of the node. Contrast is strictly verified against 4.5:1 ratio and logged in the QA report as `<node_id>:badge`.
+
+## Connectors and crossing jumps
+
+- **Arrowhead Scale (`style.arrow_scale`)**: Configurable arrowhead size (default 6.0, themes use 7.5–8.0).
+- **Crossing Jump Halos (`style.crossing_jump: true`)**: For allowed crossings (`allowed_crossings`), renders a clean 5 pt white halo behind the foreground connector to produce a clean visual gap over the background connector.
+
+## Compact horizontal legends
+
+Specify a top-level `legend` object to render a clean horizontal legend:
+```json
+"legend": {
+  "box": [40, 220, 300, 24],
+  "frame": false,
+  "items": [
+    {"label": "Input Data", "fill": "#F0F9FF", "stroke_color": "#0284C7", "kind": "node"},
+    {"label": "Evaluation Flow", "color": "#0F62FE", "kind": "edge", "shape": "line", "dashes": [3, 2]}
+  ]
+}
+```
+Legends default to borderless (`"frame": false`) for an editorial, non-boxy look; set `"frame": true` to render an outer rounded frame. Swatches support both node fills/strokes and line/arrow edges. The renderer verifies swatch contrast, text legibility, and ensures the legend does not collide with nodes or annotations. Native Draw.io exports also receive matching styled legend cells.
+
+## Pure-vector scientific icon library
+
+In addition to raster PNG icons, the renderer includes a built-in library of 30 pure-vector 24x24 scientific icons spanning Data, AI/Compute, and Science:
+- **Data & Storage**: `database`, `table`, `document`, `documents`, `folder`, `cloud`, `globe`, `satellite`, `sensor`, `waveform`
+- **AI & Compute**: `brain`, `neural_net`, `cpu`, `code`, `layers`, `filter`, `merge`, `split`, `sliders`, `gear`
+- **Science & Analysis**: `microscope`, `dna`, `flask`, `chart_bar`, `chart_line`, `search`, `check`, `alert`, `shield`, `users`
+
+Attach a vector icon to any node using:
+```json
+{"id": "icon-1", "vector_icon": "cpu", "node": "encoder", "placement": "title", "size_pt": [12, 12], "alt": "CPU"}
+```
+Vector icons scale losslessly in SVG/PDF/EPS exports without triggering raster warnings, and export to Draw.io as embedded SVG data URIs. List all available icons using `python scripts/render_diagram.py --list-icons`.
+
 ## Exports and failure behaviour
 
-Successful geometry emits `figure-01.svg` (text retained, local sans-serif fallback stack), `figure-01-outlined.svg` (stable glyph paths), `.pdf` (vector, local font embedded where supported), `.png` (600 DPI by default), `-preview.png`, `-print-size.png` (96 DPI), `-source.json`, and `-qa.json`. `--preview-only` exports the inspection PNGs and receipt for quick comparisons.
+Successful geometry emits `figure-01.svg` (text retained, local sans-serif fallback stack), `figure-01-outlined.svg` (stable glyph paths), `.pdf` (vector, local font embedded where supported), `.png` (600 DPI by default), `-preview.png`, `-print-size.png` (96 DPI), `-source.json`, and `-qa.json`. `--preview-only` exports the inspection PNGs and receipt for quick comparisons. Pass `--eps` to additionally export vector EPS (`figure-01.eps`).
 
 The outlined SVG keeps exact label geometry when Word or another machine lacks the plotting font. Its letters are paths, not editable text; keep the editable SVG and JSON alongside it. A fallback font can change text metrics, so inspect the editable SVG in the target viewer or use the outlined export for embedding. No remote font download is used.
 
-Use `--drawio` for native diagrams.net objects. Open the file in the native editor to adjust boxes and routes. The SVG/PDF use measured typography, while the native editor may wrap or route differently. Use `--tiff` for an RGB LZW TIFF at the chosen resolution. `--profile plos-one` also checks dimensions, DPI, installed font, text sizes and TIFF size against the [PLOS One figure specifications](https://journals.plos.org/plosone/s/figures). Set `canvas.font_family` to an allowed installed font. Review the figure and caption against current journal instructions.
+Use `--drawio` for native diagrams.net objects. Group nodes are exported as containers with child relative coordinates and matching corner radius. Use `--tiff` for an RGB LZW TIFF at the chosen resolution. Use `--profile` to validate journal figure constraints:
+- `plos-one`: 66.8–190.5 mm width, <=222.3 mm height, 300–600 DPI, 8–12 pt font, required font family, TIFF < 10 MB.
+- `ieee-single`: width <= 252.0 pt (3.5 in), min font >= 8.0 pt, 300–600 DPI.
+- `ieee-double`: width <= 515.52 pt (7.16 in), min font >= 8.0 pt, 300–600 DPI.
+- `springer-lncs`: width <= 345.83 pt (122 mm), height <= 547.09 pt (193 mm), min font >= 8.0 pt, 300–600 DPI.
+- `nature-single`: width <= 252.28 pt (89 mm), min font >= 7.0 pt, 300–600 DPI.
+- `nature-double`: width <= 518.74 pt (183 mm), min font >= 7.0 pt, 300–600 DPI.
+- `elsevier-double`: width <= 538.58 pt (190 mm), min font >= 7.0 pt, 300–600 DPI.
 
 Geometry failure writes a diagnostic PNG, the attempted JSON and a failed QA receipt and returns exit status 1. Input and export errors publish a failed receipt and return 2. Each run stages its files before publishing the current receipt. When reusing a stem, the renderer keeps previous generated files inside `.history/`. If a previous generated file was edited, removed or supplemented, choose a new stem. Unrelated files stay in place. Check the current receipt's status, spec hash and artifact hashes before delivery.
 
 `--check-only` validates schema/geometry inputs without importing Matplotlib; it does not measure rendered labels. `validate_svg.py` checks standalone SVG structure and active/external resources; it cannot measure fonts or certify the figure's science.
+`--require-sources` enforces that substantive nodes and edges have valid `source_refs` pointing to records in `spec["sources"]`.
+`--require-paper-figures` enforces that `spec["sources"]` contains at least 2 inspected published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, and verifiable `doi`/`url`/`pdf_url`), ensuring that new diagrams are grounded in peer-reviewed domain literature.
 
 ## Choosing another authoring method
 

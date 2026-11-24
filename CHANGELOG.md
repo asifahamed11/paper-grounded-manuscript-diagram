@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0
+
+- Added 5 curated publication themes (`nature-clean`, `ieee-crisp`, `neurips-soft`, `biomed-prisma`, `print-mono`) with non-destructive override semantics.
+- Added automatic modern sans-serif font resolution (`"font_family": "auto"` targeting Inter, Arial, Helvetica, Segoe UI, fallback DejaVu Sans).
+- Introduced card elevation shadows, directional accents (`accent: left/top`), metadata badges (`badge`, `badge_fill`, `badge_text_color`), structural containers (`container_fill`), and horizontal swatch legends (`kind: "node"`/`"edge"`).
+- Added a 3-tier icon system: host AI cutout integration (`prepare_icon.py`), custom local `.svg` vector path rendering with strict security validation, and 30 built-in instant vector icons (`scripts/vector_icons.py`).
+- Added native Matplotlib mathtext rendering for inline LaTeX equations (`\( ... \)` automatic, `$...$` with `"math": true`) with math-token-aware line wrapping.
+- Added 6 calibrated publication profiles (`ieee-single`, `ieee-double`, `springer-lncs`, `nature-single`, `nature-double`, `elsevier-double`, `plos-one`) and TrueType-embedded EPS export (`--eps`).
+- Upgraded layout planner (`plan_diagram.py`) with automatic skip-rank DAG corridor routing, cyclic feedback loop back-edge detection and return routing, and dynamic horizontal LR layout.
+- Added a 100% free, local Python stdlib paper fetcher (`fetch_papers.py`) querying OpenAlex and arXiv with deduplication and OA filtering.
+- Extended Draw.io export (`export_drawio.py`) with native container fills, shadow elevations, base64 SVG/vector icon cells, and legend swatches.
+
 ## 1.4.0
 
 - Added a measured first layout for sequences, parallel lanes and decision branches, with a reproducible public-method example.

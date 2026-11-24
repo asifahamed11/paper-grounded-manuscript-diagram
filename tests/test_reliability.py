@@ -170,6 +170,30 @@ class RendererReliabilityTests(unittest.TestCase):
         self.assertEqual(edge.find('mxGeometry').get('relative'),'1')
         self.assertIn('Records', cells['node-0'].get('value'))
 
+    def test_drawio_group_container_and_relative_coords(self):
+        spec = method()
+        spec['canvas']['height_pt'] = 220
+        spec['nodes'][0]['box'] = [40, 45, 180, 37]
+        spec['nodes'][1]['box'] = [40, 150, 180, 37]
+        spec['edges'][0]['points'] = [[130, 82], [130, 150]]
+        spec['nodes'].append({'id': 'grp', 'label': 'Study Group', 'shape': 'group',
+                              'box': [30, 5, 200, 95]})
+        report = self.render(spec, drawio=True)
+        self.assertEqual(report['status'], 'complete', report.get('errors'))
+        root = ET.parse(self.out/'figure-01.drawio')
+        cells = {cell.get('id'): cell for cell in root.findall('.//mxCell')}
+        grp_cell = cells['node-2']
+        self.assertIn('container=1;collapsible=0;pointerEvents=0;', grp_cell.get('style'))
+        self.assertIn('absoluteArcSize=1;arcSize=', grp_cell.get('style'))
+        child_cell = cells['node-0']
+        self.assertEqual(child_cell.get('parent'), 'node-2')
+        geo = child_cell.find('mxGeometry')
+        # 10 pt and 40 pt converted to Draw.io pixels (10 * 96/72 = 13.333, 40 * 96/72 = 53.333)
+        self.assertAlmostEqual(float(geo.get('x')), 13.333, places=1)
+        self.assertAlmostEqual(float(geo.get('y')), 53.333, places=1)
+        self.assertEqual(cells['node-1'].get('parent'), '1')
+        self.assertEqual(cells['edge-0'].get('parent'), '1')
+
     def test_connector_overrides_preserve_color_and_weight_in_exports(self):
         spec = method()
         spec['canvas']['height_pt'] = 230

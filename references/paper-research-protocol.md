@@ -51,7 +51,7 @@ Citation influence is log-normalized within the candidate set to reduce dominati
 
 ## 3. Access and inspection scope
 
-For new literature-grounded design, start with 2–4 directly useful figures and expand only when they add a needed convention. A styling correction to an existing verified diagram does not require a fresh literature search. If the user specifically requests five full texts, honour that request and disclose any shortfall; it is not a universal gate for unrelated diagram tasks.
+For every new diagram, grounding the visual layout, grouping conventions, and notation in peer-reviewed domain literature is the **mandatory default**. Inspect 3–5 relevant open-access paper full texts and visually analyze 2–4 directly useful figures and captions (with a minimum of 2 verified figure sources recorded in `spec["sources"]` having `kind: "figure"`, title, exact figure/page locator, and a verifiable DOI or URL). A styling correction or typo fix to an existing verified diagram does not require a fresh literature search. If the user explicitly requests no literature search, honor that exemption and disclose it.
 
 A paper counts as **downloaded and inspected** only if:
 - a full-text PDF or equivalent full text was actually obtained;
@@ -71,7 +71,7 @@ If the desired reference set cannot be legally accessed:
 3. report the actual number downloaded and inspected;
 4. do not bypass paywalls or access controls;
 5. continue a useful diagram from the user's verified method with the evidence limitations stated; ask for a missing source only when it materially affects scientific content or an explicit requirement;
-6. never claim a requested paper count or inspection stage was met if it was not.
+6. never claim a requested paper count or inspection stage was met if it was not. Never fabricate paper records or fake DOIs.
 
 Do not send private manuscript text, unpublished diagrams or research data to external search/generation services. Public subject/DOI queries and lawful public-paper downloads are sufficient for style research. Link every adopted convention to an actual inspected page/figure and a concrete new-design choice; a bibliography alone is not a design analysis.
 

@@ -4,8 +4,9 @@
   "canvas": {
     "width_pt": 480,
     "height_pt": 124,
-    "font_pt": 9,
-    "min_font_pt": 8.5
+    "font_pt": 9.2,
+    "min_font_pt": 8.5,
+    "font_family": "auto"
   },
   "nodes": [
     {
@@ -18,11 +19,11 @@
         26
       ],
       "label": "Illustrative research workflow with optional icons",
-      "fill": "blue",
-      "text_color": "white",
+      "fill": "#E8F1F8",
+      "text_color": "#0F2942",
       "bold": true,
-      "font_pt": 11,
-      "stroke_color": "#005A8D",
+      "font_pt": 10.5,
+      "stroke_color": "#2B6CB0",
       "align": "left",
       "padding_pt": 5
     },
@@ -36,7 +37,9 @@
       ],
       "label": "Collect",
       "detail": "Source records",
-      "text_color": "#172D3C"
+      "text_color": "#0F172A",
+      "fill": "#FFFFFF",
+      "stroke_color": "#94A3B8"
     },
     {
       "id": "review",
@@ -48,7 +51,9 @@
       ],
       "label": "Review",
       "detail": "Quality checks",
-      "text_color": "#172D3C"
+      "text_color": "#0F172A",
+      "fill": "#FFFFFF",
+      "stroke_color": "#94A3B8"
     },
     {
       "id": "summary",
@@ -60,7 +65,9 @@
       ],
       "label": "Synthesize",
       "detail": "Research summary",
-      "text_color": "#172D3C"
+      "text_color": "#0F172A",
+      "fill": "#FFFFFF",
+      "stroke_color": "#94A3B8"
     }
   ],
   "edges": [
@@ -141,13 +148,19 @@
       ],
       "label": "Illustrative local artwork; adapt the method, symbols and layout to the actual research.",
       "font_pt": 8.5,
-      "text_color": "#385365"
+      "text_color": "#475569"
     }
   ],
   "style": {
-    "stroke_color": "#879AA6",
-    "connector_color": "#486170",
-    "line_width_pt": 0.82,
-    "title_detail_gap_pt": 3.2
+    "stroke_color": "#94A3B8",
+    "connector_color": "#334155",
+    "line_width_pt": 0.85,
+    "connector_width_pt": 1.15,
+    "corner_radius_pt": 4.5,
+    "arrow_scale": 7.0,
+    "shadow": false,
+    "detail_color": "#475569",
+    "detail_font_pt": 8.5,
+    "title_detail_gap_pt": 2.4
   }
 }

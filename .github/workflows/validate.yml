@@ -22,10 +22,12 @@ jobs:
       - name: Check helper command interfaces
         run: |
           python scripts/score_papers.py --help
+          python scripts/fetch_papers.py --help
           python scripts/extract_pdf_figures.py --help
           python scripts/build_contact_sheet.py --help
           python scripts/validate_svg.py --help
           python scripts/render_diagram.py --help
+          python scripts/render_diagram.py --list-icons
           python scripts/plan_diagram.py --help
           python scripts/prepare_icon.py --help
           python scripts/render_diagram.py templates/parallel-study.json --check-only
@@ -52,6 +54,10 @@ jobs:
           python scripts/validate_svg.py diagram-output/conceptual.svg
           python scripts/render_diagram.py templates/icon-workflow/diagram.json --output-dir diagram-output --stem icons
           python scripts/validate_svg.py diagram-output/icons.svg
+          python scripts/render_diagram.py templates/ml-architecture.json --output-dir diagram-output --stem ml-arch --drawio --eps
+          python scripts/validate_svg.py diagram-output/ml-arch.svg
+          python scripts/render_diagram.py templates/multi-panel-method.json --output-dir diagram-output --stem multi-panel --drawio
+          python scripts/validate_svg.py diagram-output/multi-panel.svg
       - name: Build a figure directly from sourced method stages
         run: |
           python scripts/plan_diagram.py --doctor

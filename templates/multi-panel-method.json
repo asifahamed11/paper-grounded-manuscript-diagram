@@ -1,0 +1,232 @@
+{
+  "title": "Multi-Panel Translational Study Protocol",
+  "description": "Integrated discovery, experimental validation, and cross-cohort replication pipeline across three panels.",
+  "canvas": {
+    "width_pt": 585,
+    "height_pt": 268,
+    "font_family": "auto",
+    "font_pt": 9,
+    "min_font_pt": 7.5,
+    "math": true
+  },
+  "style": {
+    "theme": "nature-clean",
+    "corner_radius_pt": 5,
+    "line_width_pt": 0.75,
+    "connector_width_pt": 1.15,
+    "arrow_scale": 7.5,
+    "shadow": false,
+    "crossing_jump": true
+  },
+  "sources": [
+    {
+      "id": "study-protocol",
+      "kind": "method",
+      "title": "Translational Biomarker Validation Study",
+      "locator": "Methods Section 2.1-2.4"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "panel-a",
+      "shape": "group",
+      "box": [15, 12, 175, 208],
+      "label": "Panel A: Discovery Cohort",
+      "container_fill": "#F7FAFC",
+      "border_style": "dashed"
+    },
+    {
+      "id": "cohort",
+      "shape": "data",
+      "box": [30, 48, 145, 44],
+      "label": "Clinical Registries",
+      "detail": "N = 14,250 records",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "filter",
+      "shape": "decision",
+      "box": [40, 104, 125, 48],
+      "label": "Eligible?",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "sample",
+      "shape": "process",
+      "box": [30, 166, 145, 42],
+      "label": "Curated Cases (N=11,820)",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "panel-b",
+      "shape": "group",
+      "box": [205, 12, 175, 208],
+      "label": "Panel B: Genomic Assay",
+      "container_fill": "#F7FAFC",
+      "border_style": "dashed"
+    },
+    {
+      "id": "sequencing",
+      "shape": "process",
+      "box": [220, 48, 145, 44],
+      "label": "Targeted Sequencing",
+      "detail": "High-throughput panel",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "alignment",
+      "shape": "process",
+      "box": [220, 106, 145, 44],
+      "label": "Variant Calling",
+      "detail": "Reference alignment",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "stat-test",
+      "shape": "terminator",
+      "box": [220, 166, 145, 42],
+      "label": "Significance \\( p < 10^{-6} \\)",
+      "math": true,
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "panel-c",
+      "shape": "group",
+      "box": [395, 12, 175, 208],
+      "label": "Panel C: External Replication",
+      "container_fill": "#F7FAFC",
+      "border_style": "dashed"
+    },
+    {
+      "id": "replication",
+      "shape": "process",
+      "box": [410, 48, 145, 44],
+      "label": "External Cohort",
+      "detail": "N = 3,420 independent",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "evaluation",
+      "shape": "process",
+      "box": [410, 106, 145, 44],
+      "label": "Model Validation",
+      "detail": "AUROC & Calibration test",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "findings",
+      "shape": "data",
+      "box": [410, 166, 145, 42],
+      "label": "14 Replicated Loci",
+      "source_refs": ["study-protocol"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-cohort-filter",
+      "from": "cohort",
+      "to": "filter",
+      "points": [[102, 92], [102, 104]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-filter-sample",
+      "from": "filter",
+      "to": "sample",
+      "points": [[102, 152], [102, 166]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-sample-seq",
+      "from": "sample",
+      "to": "sequencing",
+      "points": [[175, 187], [195, 187], [195, 70], [220, 70]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-seq-align",
+      "from": "sequencing",
+      "to": "alignment",
+      "points": [[292, 92], [292, 106]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-align-stat",
+      "from": "alignment",
+      "to": "stat-test",
+      "points": [[292, 150], [292, 166]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-stat-eval",
+      "from": "stat-test",
+      "to": "evaluation",
+      "points": [[365, 187], [385, 187], [385, 128], [410, 128]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-rep-eval",
+      "from": "replication",
+      "to": "evaluation",
+      "points": [[482, 92], [482, 106]],
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "e-eval-findings",
+      "from": "evaluation",
+      "to": "findings",
+      "points": [[482, 150], [482, 166]],
+      "source_refs": ["study-protocol"]
+    }
+  ],
+  "icons": [
+    {
+      "id": "icon-db",
+      "vector_icon": "database",
+      "node": "cohort",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Clinical database",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "icon-dna",
+      "vector_icon": "dna",
+      "node": "sequencing",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Genomic DNA sequencing",
+      "source_refs": ["study-protocol"]
+    },
+    {
+      "id": "icon-users",
+      "vector_icon": "users",
+      "node": "replication",
+      "placement": "title",
+      "size_pt": [14, 14],
+      "alt": "Patient cohort",
+      "source_refs": ["study-protocol"]
+    }
+  ],
+  "legend": {
+    "box": [15, 230, 555, 26],
+    "frame": false,
+    "items": [
+      {
+        "label": "Clinical Registry",
+        "fill": "#EBF5F7",
+        "stroke_color": "#2B7A8B"
+      },
+      {
+        "label": "Molecular Assay",
+        "fill": "#FFFFFF",
+        "stroke_color": "#94A3B8"
+      },
+      {
+        "label": "Replicated Findings",
+        "fill": "#EAF6EE",
+        "stroke_color": "#1E7E5C"
+      }
+    ]
+  }
+}

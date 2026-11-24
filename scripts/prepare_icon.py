@@ -14,6 +14,12 @@ from pathlib import Path
 import re
 import sys
 
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
 
 def white_cutout(image, tolerance=8):
     """Keep enclosed white details; remove the connected exterior only."""
@@ -57,6 +63,25 @@ def solid_matte(image, foreground):
     norm = sum(c*c for c in direction)
     if norm < 1000:
         raise ValueError('Foreground is too close to white for reliable matting')
+    if HAS_NUMPY:
+        arr = np.array(image, dtype=np.float64)
+        if not np.all(arr[..., 3] == 255):
+            raise ValueError('Solid-colour white matting requires opaque input')
+        rgb = arr[..., :3]
+        diff = 255.0 - rgb
+        dir_vec = np.array(direction, dtype=np.float64)
+        alpha = np.clip(np.sum(diff * dir_vec, axis=-1) / norm, 0.0, 1.0)
+        expected_rgb = 255.0 - alpha[..., None] * dir_vec
+        error = np.max(np.abs(rgb - expected_rgb), axis=-1)
+        if np.any(error > 4.0):
+            raise ValueError('Image is not a single-colour glyph on white; omit --foreground and use exterior/mask mode')
+        out_arr = np.empty((arr.shape[0], arr.shape[1], 4), dtype=np.uint8)
+        out_arr[..., 0] = fg[0]
+        out_arr[..., 1] = fg[1]
+        out_arr[..., 2] = fg[2]
+        out_arr[..., 3] = np.round(255.0 * alpha).astype(np.uint8)
+        return Image.fromarray(out_arr, 'RGBA')
+
     data = []
     for r, g, b, a in image.getdata():
         if a != 255:
@@ -70,11 +95,40 @@ def solid_matte(image, foreground):
     return result
 
 
-def prepare(source, output, mode='auto', tolerance=8, padding=8, mask=None, foreground=None, unmatte_white=False):
+def unmatte_white(image):
+    from PIL import Image
+    if HAS_NUMPY:
+        arr = np.array(image, dtype=np.float64)
+        a = arr[..., 3]
+        out_arr = np.zeros_like(arr, dtype=np.uint8)
+        out_arr[..., 3] = arr[..., 3].astype(np.uint8)
+        mask_a = a > 0
+        if np.any(mask_a):
+            alpha_frac = a[mask_a] / 255.0
+            rgb = arr[mask_a, :3]
+            unmatted = np.round((rgb - 255.0 * (1.0 - alpha_frac[:, None])) / alpha_frac[:, None])
+            unmatted = np.clip(unmatted, 0, 255).astype(np.uint8)
+            out_arr[mask_a, :3] = unmatted
+        return Image.fromarray(out_arr, 'RGBA')
+    else:
+        pixels = []
+        for r, g, b, a in image.getdata():
+            pixels.append(tuple(max(0, min(255, round((c-255*(1-a/255))/(a/255)))) for c in (r,g,b)) + (a,) if a else (0,0,0,0))
+        result = image.copy()
+        result.putdata(pixels)
+        return result
+
+
+_unmatte_white_fn = unmatte_white
+
+
+def prepare(source, output, mode='auto', tolerance=8, padding=8, mask=None, foreground=None, unmatte_white=False, overwrite=False):
     from PIL import Image, ImageChops, ImageOps, ImageDraw
     source, output = Path(source), Path(output)
     outputs=[output,output.with_suffix('.json'),output.with_name(output.stem+'-background-check.png')]
-    if any(source.resolve()==p.resolve() or p.exists() for p in outputs):
+    if any(source.resolve()==p.resolve() for p in outputs):
+        raise ValueError('Choose a new output PNG; source cannot be overwritten')
+    if not overwrite and any(p.exists() for p in outputs):
         raise ValueError('Choose a new output PNG; source and existing outputs are preserved')
     if output.suffix.lower() != '.png':
         raise ValueError('Output must be a PNG')
@@ -109,10 +163,7 @@ def prepare(source, output, mode='auto', tolerance=8, padding=8, mask=None, fore
     if unmatte_white:
         if not mask:
             raise ValueError('--unmatte-white requires a mask for an image originally composited on white')
-        pixels = []
-        for r, g, b, a in image.getdata():
-            pixels.append(tuple(max(0, min(255, round((c-255*(1-a/255))/(a/255)))) for c in (r,g,b)) + (a,) if a else (0,0,0,0))
-        image.putdata(pixels)
+        image = _unmatte_white_fn(image)
     alpha = image.getchannel('A')
     bbox = alpha.getbbox()
     if bbox is None:
@@ -158,10 +209,11 @@ def main():
     parser.add_argument('--mask', type=Path)
     parser.add_argument('--foreground', help='Exact #RRGGBB, only for single-colour glyphs on white')
     parser.add_argument('--unmatte-white', action='store_true')
+    parser.add_argument('--overwrite', action='store_true')
     args = parser.parse_args()
     try:
         print(json.dumps(prepare(args.source, args.output, args.mode, args.tolerance, args.padding,
-                                 args.mask, args.foreground, args.unmatte_white), indent=2))
+                                 args.mask, args.foreground, args.unmatte_white, args.overwrite), indent=2))
         return 0
     except (ValueError, OSError, ImportError) as exc:
         print(f'Cannot prepare icon: {exc}', file=sys.stderr)
