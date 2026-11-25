@@ -18,19 +18,24 @@ Design publication-grade, reproducible scientific workflows, method schematics, 
 
 | Scope | Pipeline & Actions | Enforcement |
 |---|---|---|
-| **New Figure (MANDATORY DEFAULT)** | Even when complete manuscript text or code is provided, **FIRST** run the paper-figure research pipeline (`fetch_papers.py` → `score_papers.py` → download 3–5 legal OA PDFs → `extract_pdf_figures.py` → `build_contact_sheet.py` → visually inspect at least 2–4 relevant published figures & captions) to ground layout, visual conventions, grouping, and notation in real peer-reviewed domain literature BEFORE drafting the diagram. Include inspected figures in `spec["sources"]` (`"kind": "figure"` with `doi`/`url` and exact `locator`, e.g., `"Fig. 2, p. 4"`). | Execute with `--require-sources --require-paper-figures` (enforces $\ge 2$ inspected figure sources with verifiable links). |
+| **New Figure (MANDATORY DEFAULT)** | Even when complete manuscript text or code is provided, **FIRST** classify the target diagram type (`workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, `graphical-abstract`), then run diagram-type-targeted paper discovery (`fetch_papers.py --diagram-type <type> --oa-only --limit 20` → `score_papers.py` → download legal OA PDFs → `extract_pdf_figures.py` → `build_contact_sheet.py`). Visually screen pages, **discard off-type papers**, and deeply analyze **at least 5 relevant published diagrams** of that exact type BEFORE drafting the diagram. Include all $\ge 5$ inspected figures in `spec["sources"]` (`"kind": "figure"` with `title`, `locator`, `doi`/`url`, and `takeaway`). | Execute with `--require-sources --require-paper-figures` (enforces $\ge 5$ deeply analyzed figure sources with verifiable links and `takeaway`/`notes`; adjustable via `--min-paper-figures`). |
 | **Figure Polish / Refactoring** | Improve spacing, colors, hierarchy, or alignment of an already-verified existing spec. Re-running paper search is not required for minor typo/color/spacing adjustments on existing diagrams. | Run with `--require-sources`. |
 | **Multi-Format Export** | Render vector PDF, editable SVG, 600-DPI PNG, TIFF, EPS, and native Draw.io diagram. | Full format suite generated automatically. |
 
 ### Autonomous Defaults (For Short, Simple User Prompts)
 
 When a user gives a brief request without mentioning themes, dimensions, flags, or paper research (e.g., *"Draw a methodology figure from my paper/code"*), automatically apply all defaults without asking unnecessary technical questions:
-- **Mandatory Literature Grounding:** Always run `fetch_papers.py` → `score_papers.py` → download 3–5 legal OA PDFs → `extract_pdf_figures.py` → inspect 2–4 real published figures → record $\ge 2$ verified `kind: "figure"` sources and render with `--require-sources --require-paper-figures --drawio`.
-- **Smart Domain Auto-Selection:**
-  - **ML / DL / NLP / AI**: `"theme": "neurips-soft"`, prefer horizontal double-column (`width_pt: 515.0`, `--profile ieee-double`).
-  - **Biomedical / Clinical / PRISMA**: `"theme": "biomed-prisma"`, vertical or two-lane (`width_pt: 360–468`).
-  - **Engineering / Systems**: `"theme": "ieee-crisp"`, `--profile ieee-double` (or `ieee-single`).
-  - **General Science / Multi-Panel**: `"theme": "nature-clean"`, `--profile nature-double` (or `nature-single`).
+- **Mandatory Diagram-Type-Matched 5-Figure Workflow:**
+  1. **Classify Diagram Type First:** Choose the best match (`workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, `graphical-abstract`).
+  2. **Targeted Paper Discovery (NO Random Papers):** Run `fetch_papers.py "<topic>" --diagram-type <type> --oa-only --limit 20 --output papers.csv` → `score_papers.py` → download legal OA PDFs → extract pages with `extract_pdf_figures.py` + `build_contact_sheet.py`.
+  3. **Strict Diagram Screening:** Visually inspect extracted pages and **discard any paper that does NOT contain a relevant diagram of the requested type**. Keep screening additional OA PDFs until you have **$\ge 5$ relevant published diagrams** of that exact type.
+  4. **Deep Structured Analysis Before Drafting:** Analyze all $\ge 5$ relevant diagrams in `figure-review.md` (layout topology, reading direction, grouping/containers, shapes & notation, information density, typography, arrow styling, strengths to adopt, flaws to avoid), then synthesize an original custom diagram tailored strictly to the user's method.
+  5. **Code-Enforced Grounding:** Record all $\ge 5$ analyzed figures in `spec["sources"]` (`kind: "figure"` with `title`, `locator`, `doi`/`url`, and `takeaway`) and render with `--require-sources --require-paper-figures --drawio`.
+- **Colorblind-Safe Scientific Palette Auto-Selection:**
+  - **General scientific, ML/DL/AI pipelines, experimental workflows**: `"theme": "okabe-ito"` (paired with `--profile ieee-double` or `nature-double` as appropriate).
+  - **Research frameworks, conceptual models, multi-category architectures**: `"theme": "paul-tol-muted"`.
+  - **Text-heavy workflows, PRISMA, screening & decision flowcharts**: `"theme": "paul-tol-pale"`.
+  - **Grayscale / B&W print**: `"theme": "print-mono"`.
 - **Human-Crafted Print Defaults:** `"font_family": "auto"`, flat vector (`shadow: false`), clean pastel rounded rectangles (use consistent `process` boxes for tall blocks rather than over-rounded tall `terminator` squircles), bold titles + muted slate subtitles, sans-serif inline math `\( ... \)`, at most 0–2 understated vector icons, and borderless (`"frame": false`) legend ONLY when encoding non-obvious line styles or shared roles.
 
 **Only Allowed Exemptions to Paper Search:**
@@ -40,41 +45,40 @@ Skip literature search **ONLY** when:
 
 If network or OA full-text access genuinely fails after trying both OpenAlex and arXiv, **never fabricate paper records**—disclose the exact shortfall in the QA report and proceed honestly with evidence limitations clearly documented.
 
-## 2. Paper Grounding Pipeline
+## 2. Diagram-Type-Matched 5-Figure Grounding Pipeline
 
-When visual conventions or domain precedents are needed:
+For every new diagram, discover and analyze published diagrams matching the exact requested diagram type:
 
-1. **Query & Retrieve**: Search OpenAlex and arXiv using stdlib (zero API keys):
+1. **Classify the Diagram Type**: Select `--diagram-type` from `workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, or `graphical-abstract`.
+2. **Targeted Query & OA Retrieval**: Search OpenAlex and arXiv with `--oa-only` prioritization and zero API keys:
    ```bash
-   python scripts/fetch_papers.py "single-cell RNA-seq clustering workflow" --limit 10 --oa-only --output papers.csv
+   python scripts/fetch_papers.py "single-cell RNA-seq clustering" --diagram-type workflow --limit 20 --oa-only --output papers.csv
    ```
-2. **Score & Filter**: Score candidate papers by relevance and figure density:
+3. **Score, Extract & Screen Out Off-Type Papers**:
    ```bash
    python scripts/score_papers.py papers.csv --output scored.csv
-   ```
-3. **Extract & Inspect**: Extract figures from open-access PDFs into an inspection contact sheet:
-   ```bash
    python scripts/extract_pdf_figures.py paper.pdf --output-dir extracted/
    python scripts/build_contact_sheet.py extracted/ --output contact.png
    ```
-4. **Record Precedents**: Log figure locator, convention, and design decision in your design notes.
+   Visually inspect extracted pages and **discard any paper lacking a relevant diagram of the requested type**. Keep screening additional OA PDFs until you have **at least 5 relevant published diagrams of that exact type**.
+4. **Deep Structured Analysis ($\ge 5$ Diagrams)**: Before drafting boxes or routes, complete structured reviews for all 5+ diagrams in `figure-review.md` covering layout topology, reading direction, grouping/containers, shapes & notation, information density, typography, arrow styling, strengths to adopt, and flaws to avoid. Synthesize recurring conventions into an original design for the user's method and record a concise `takeaway` in each `spec["sources"]` figure entry.
 
 ## 3. Diagram Planning & Composition
 
 For standard methods, parallel lanes, skip-rank DAGs, or cyclic feedback loops, author or generate a method JSON specification and run the deterministic layout planner:
 
 ```bash
-python scripts/plan_diagram.py method.json --output-dir output --stem figure-01 --theme nature-clean --profile nature-single --require-sources --require-paper-figures
+python scripts/plan_diagram.py method.json --output-dir output --stem figure-01 --theme okabe-ito --profile nature-single --require-sources --require-paper-figures
 ```
 
 - **Relationships**: Planner resolves row ranking (`rank`), parallel lane assignment (`col`), skip-rank corridor routing, feedback loops (outer return corridors), and horizontal left-to-right pipelines (`"direction": "horizontal"`).
-- **Grounding Evidence**: Declare top-level `"sources": [{"id": "method-sec2", "kind": "method", "title": "Author Manuscript", "locator": "Section 2.1"}]` and attach per-node or per-edge `"source_refs": ["method-sec2"]`. Enforce source coverage via `--require-sources`.
+- **Grounding Evidence**: Declare top-level method sources (`"kind": "method"`) AND at least **5** deeply analyzed published figure sources (`"kind": "figure"`, `"title"`, `"locator"`, `"doi"` or `"url"`, and `"takeaway"`), linking substantive nodes and edges via `"source_refs"`. Enforce coverage via `--require-sources --require-paper-figures`.
 
 ## 4. Visual Masterpiece Engine & Styling
 
 The core renderer (`scripts/render_diagram.py`) applies publication aesthetics:
 
-- **Curated Themes (`--theme`)**: `nature-clean` (slate `#0F172A`, teal accents, hairline borders), `ieee-crisp` (navy `#0F172A`, steel borders, bold connectors), `neurips-soft` (modern pastel cards, indigo/green tints), `biomed-prisma` (warm clinical palette), `print-mono` (black & white publication standard). Custom node colors override theme defaults. All themes default to flat, crisp print vector (`shadow: false`).
+- **Colorblind-Safe Scientific Themes (`--theme`)**: `okabe-ito` (general scientific default — ML/AI pipelines, experimental workflows, labelled comparisons), `paul-tol-muted` (research frameworks, conceptual models, multi-category architectures), `paul-tol-pale` (text-heavy PRISMA diagrams, screening workflows, decision flowcharts), `print-mono` (black & white print proceedings). Custom node colors override theme defaults. All themes use flat crisp vector (`shadow: false`, WCAG $\ge 4.5:1$ contrast).
 - **Journal Profiles (`--profile`)**: Calibrated column widths: `ieee-single` (88 mm), `ieee-double` (181 mm), `nature-single` (89 mm), `nature-double` (183 mm), `springer-lncs` (122 mm), `elsevier-double` (190 mm), `plos-one` (171.45 mm).
 - **Modern Typography**: Set `"font_family": "auto"` to automatically select the cleanest installed sans-serif (`Inter`, `Arial`, `Helvetica`, `Segoe UI`, fallback `DejaVu Sans`).
 - **Accents & Badges**: Add distinct visual cues via `"accent": "left"` / `"top"` (with optional `"accent_color"`) and `"badge": "Phase 1"` (with `"badge_fill"` / `"badge_text_color"`).

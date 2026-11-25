@@ -22,10 +22,51 @@ FIELDNAMES = [
     'title', 'authors', 'year', 'venue', 'doi', 'url',
     'citations', 'citation_source', 'citation_checked_on',
     'relevance', 'figure_relevance', 'oa_status', 'pdf_url',
-    'downloaded_full_text', 'figure_inspected', 'figure_locator', 'notes'
+    'downloaded_full_text', 'figure_inspected', 'figure_locator', 'notes',
+    'target_diagram_type'
 ]
 
+DIAGRAM_TYPE_TERMS: dict[str, str] = {
+    'workflow': '"methodology workflow" OR "experimental pipeline" OR "study workflow"',
+    'architecture': '"model architecture" OR "network architecture" OR "framework overview"',
+    'system': '"system architecture" OR "system overview" OR "pipeline architecture"',
+    'flowchart': '"flowchart" OR "decision workflow" OR "algorithm flow"',
+    'prisma': '"PRISMA" OR "systematic review" OR "study selection flow diagram"',
+    'conceptual': '"conceptual framework" OR "theoretical model" OR "causal diagram"',
+    'taxonomy': '"taxonomy" OR "survey" OR "classification hierarchy"',
+    'timeline': '"timeline" OR "longitudinal study" OR "chronological workflow"',
+    'multi-panel': '"multi-panel" OR "translational workflow" OR "pipeline overview"',
+    'graphical-abstract': '"graphical abstract" OR "overview schematic"',
+}
+
 USER_AGENT = 'paper-grounded-manuscript-diagram (mailto:scholar@example.org)'
+
+
+def _validate_diagram_type(diagram_type: str | None) -> str | None:
+    """Validate and normalize optional diagram type against DIAGRAM_TYPE_TERMS."""
+    if diagram_type is None:
+        return None
+    normalized = diagram_type.strip().lower()
+    if normalized not in DIAGRAM_TYPE_TERMS:
+        valid = ', '.join(sorted(DIAGRAM_TYPE_TERMS))
+        raise ValueError(f"Unknown diagram type '{diagram_type}'. Valid types: {valid}")
+    return normalized
+
+
+def build_targeted_query(query: str, diagram_type: str | None = None, source: str = 'openalex') -> str:
+    """Append concise diagram-type keywords tailored to OpenAlex or arXiv search syntax."""
+    cleaned = query.strip()
+    dt = _validate_diagram_type(diagram_type)
+    if not dt:
+        return cleaned
+    terms = DIAGRAM_TYPE_TERMS[dt]
+    if source == 'arxiv':
+        phrases = [p.strip() for p in terms.split(' OR ') if p.strip()]
+        tokens = [t for t in re.findall(r'"[^"]+"|\S+', cleaned) if t.upper() not in ('AND', 'OR')]
+        topic_clause = ' AND '.join(f'all:{tok}' for tok in tokens)
+        or_clause = ' OR '.join(f'all:{p}' for p in phrases)
+        return f'({topic_clause}) AND ({or_clause})' if topic_clause else f'({or_clause})'
+    return f'{cleaned} ({terms})' if cleaned else f'({terms})'
 
 
 def normalize_title(title: str) -> str:
@@ -95,14 +136,16 @@ def fetch_openalex(query: str, limit: int = 10) -> list[dict]:
             'downloaded_full_text': 'no',
             'figure_inspected': 'no',
             'figure_locator': '',
-            'notes': ''
+            'notes': '',
+            'target_diagram_type': ''
         })
     return results
 
 
 def fetch_arxiv(query: str, limit: int = 10) -> list[dict]:
     """Fetch preprints from arXiv Atom API."""
-    encoded = urllib.parse.quote(f"all:{query}")
+    search_expr = query if 'all:' in query else f"all:{query}"
+    encoded = urllib.parse.quote(search_expr)
     url = f"https://export.arxiv.org/api/query?search_query={encoded}&max_results={min(limit, 50)}"
     req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
     try:
@@ -164,7 +207,8 @@ def fetch_arxiv(query: str, limit: int = 10) -> list[dict]:
             'downloaded_full_text': 'no',
             'figure_inspected': 'no',
             'figure_locator': '',
-            'notes': ''
+            'notes': '',
+            'target_diagram_type': ''
         })
     return results
 
@@ -189,21 +233,25 @@ def deduplicate_papers(papers: list[dict]) -> list[dict]:
     return unique
 
 
-def search_papers(query: str, limit: int = 10, sources: list[str] | None = None,
-                  oa_only: bool = False) -> list[dict]:
+def search_papers(query: str, limit: int = 20, sources: list[str] | None = None,
+                  oa_only: bool = False, diagram_type: str | None = None) -> list[dict]:
     """Search scholarly repositories and return structured paper matrix records."""
+    dt = _validate_diagram_type(diagram_type)
     if sources is None:
         sources = ['openalex', 'arxiv']
     combined = []
     errors = []
+    fetch_limit = min(50, max(limit * 3, 25)) if oa_only else limit
 
     for src in sources:
         src = src.strip().lower()
         try:
             if src == 'openalex':
-                combined.extend(fetch_openalex(query, limit=limit))
+                oa_query = build_targeted_query(query, dt, source='openalex')
+                combined.extend(fetch_openalex(oa_query, limit=fetch_limit))
             elif src == 'arxiv':
-                combined.extend(fetch_arxiv(query, limit=limit))
+                arxiv_query = build_targeted_query(query, dt, source='arxiv')
+                combined.extend(fetch_arxiv(arxiv_query, limit=fetch_limit))
             else:
                 sys.stderr.write(f"Warning: Unknown source '{src}', skipping.\n")
         except Exception as exc:
@@ -216,17 +264,26 @@ def search_papers(query: str, limit: int = 10, sources: list[str] | None = None,
     if oa_only:
         unique = [
             p for p in unique
-            if (p.get('oa_status') and p['oa_status'] not in ('closed', 'none')) or p.get('pdf_url')
+            if (p.get('oa_status') and p['oa_status'] not in ('closed', 'none')) or (p.get('pdf_url') or '').strip()
         ]
-    return unique[:limit]
+        unique.sort(key=lambda p: 0 if (p.get('pdf_url') or '').strip() else 1)
+
+    selected = unique[:limit]
+    for record in selected:
+        record.setdefault('target_diagram_type', '')
+        if dt:
+            record['target_diagram_type'] = dt
+    return selected
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('query', help='Search query for papers (e.g. "hybrid retrieval BM25 dense fusion")')
-    parser.add_argument('--limit', type=int, default=10, help='Maximum number of papers to retrieve (default: 10)')
+    parser.add_argument('--limit', type=int, default=20, help='Maximum number of papers to retrieve (default: 20)')
     parser.add_argument('--sources', default='openalex,arxiv',
                         help='Comma-separated sources: openalex, arxiv (default: openalex,arxiv)')
+    parser.add_argument('--diagram-type', choices=sorted(DIAGRAM_TYPE_TERMS.keys()), default=None,
+                        help='Bias search toward papers containing a matching published diagram type')
     parser.add_argument('--oa-only', action='store_true', help='Only return open-access papers with accessible PDFs')
     parser.add_argument('--output', type=Path, default=None,
                         help='Destination CSV file path (prints to stdout if omitted)')
@@ -234,7 +291,8 @@ def main():
 
     source_list = [s.strip() for s in args.sources.split(',') if s.strip()]
     try:
-        papers = search_papers(args.query, limit=args.limit, sources=source_list, oa_only=args.oa_only)
+        papers = search_papers(args.query, limit=args.limit, sources=source_list,
+                               oa_only=args.oa_only, diagram_type=args.diagram_type)
     except Exception as exc:
         sys.stderr.write(f"Error fetching papers: {exc}\n")
         sys.exit(1)
@@ -242,12 +300,12 @@ def main():
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open('w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+            writer = csv.DictWriter(f, fieldnames=FIELDNAMES, extrasaction='ignore')
             writer.writeheader()
             writer.writerows(papers)
         print(f"Wrote {len(papers)} candidate papers to {args.output}")
     else:
-        writer = csv.DictWriter(sys.stdout, fieldnames=FIELDNAMES)
+        writer = csv.DictWriter(sys.stdout, fieldnames=FIELDNAMES, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(papers)
 

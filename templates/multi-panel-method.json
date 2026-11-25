@@ -10,7 +10,7 @@
     "math": true
   },
   "style": {
-    "theme": "nature-clean",
+    "theme": "paul-tol-muted",
     "corner_radius_pt": 5,
     "line_width_pt": 0.75,
     "connector_width_pt": 1.15,
@@ -214,18 +214,18 @@
     "items": [
       {
         "label": "Clinical Registry",
-        "fill": "#EBF5F7",
-        "stroke_color": "#2B7A8B"
+        "fill": "#EDF7FC",
+        "stroke_color": "#332288"
       },
       {
         "label": "Molecular Assay",
         "fill": "#FFFFFF",
-        "stroke_color": "#94A3B8"
+        "stroke_color": "#4A5568"
       },
       {
         "label": "Replicated Findings",
-        "fill": "#EAF6EE",
-        "stroke_color": "#1E7E5C"
+        "fill": "#E9F4EC",
+        "stroke_color": "#117733"
       }
     ]
   }

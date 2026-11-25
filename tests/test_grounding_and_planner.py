@@ -540,6 +540,7 @@ class FetchPapersTests(unittest.TestCase):
 
         results = fetch_papers.search_papers('deep learning', limit=5, oa_only=True)
         self.assertEqual(len(results), 1)
+        self.assertIn('target_diagram_type', results[0])
 
         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.csv') as tf:
             writer = csv.DictWriter(tf, fieldnames=fetch_papers.FIELDNAMES)
@@ -559,6 +560,117 @@ class FetchPapersTests(unittest.TestCase):
             if tf_path.exists():
                 tf_path.unlink()
 
+    @patch('scripts.fetch_papers.fetch_openalex')
+    @patch('scripts.fetch_papers.fetch_arxiv')
+    def test_diagram_type_targeted_query_and_oa_pdf_priority(self, mock_arxiv, mock_oa):
+        expected_types = {
+            'workflow', 'architecture', 'system', 'flowchart', 'prisma',
+            'conceptual', 'taxonomy', 'timeline', 'multi-panel', 'graphical-abstract'
+        }
+        self.assertEqual(set(fetch_papers.DIAGRAM_TYPE_TERMS.keys()), expected_types)
+
+        mock_oa.return_value = [
+            {
+                'title': 'OA Landing Only Paper',
+                'authors': 'Author A',
+                'year': '2024',
+                'venue': 'Journal X',
+                'doi': '10.1000/111',
+                'url': 'https://example.org/a',
+                'citations': '12',
+                'citation_source': 'OpenAlex',
+                'citation_checked_on': '2026-01-01',
+                'relevance': '',
+                'figure_relevance': '',
+                'oa_status': 'green',
+                'pdf_url': '',
+                'downloaded_full_text': 'no',
+                'figure_inspected': 'no',
+                'figure_locator': '',
+                'notes': ''
+            },
+            {
+                'title': 'Closed Access Paper',
+                'authors': 'Author B',
+                'year': '2025',
+                'venue': 'Journal Y',
+                'doi': '10.1000/222',
+                'url': 'https://example.org/b',
+                'citations': '99',
+                'citation_source': 'OpenAlex',
+                'citation_checked_on': '2026-01-01',
+                'relevance': '',
+                'figure_relevance': '',
+                'oa_status': 'closed',
+                'pdf_url': '',
+                'downloaded_full_text': 'no',
+                'figure_inspected': 'no',
+                'figure_locator': '',
+                'notes': ''
+            },
+        ]
+        mock_arxiv.return_value = [
+            {
+                'title': 'Hybrid Architecture With Direct PDF',
+                'authors': 'Author C',
+                'year': '2025',
+                'venue': 'arXiv preprint',
+                'doi': '',
+                'url': 'http://arxiv.org/abs/2501.00001v1',
+                'citations': '',
+                'citation_source': 'arXiv',
+                'citation_checked_on': '2026-01-01',
+                'relevance': '',
+                'figure_relevance': '',
+                'oa_status': 'green-preprint',
+                'pdf_url': 'https://arxiv.org/pdf/2501.00001v1.pdf',
+                'downloaded_full_text': 'no',
+                'figure_inspected': 'no',
+                'figure_locator': '',
+                'notes': ''
+            }
+        ]
+
+        results = fetch_papers.search_papers('hybrid retrieval', limit=2, oa_only=True, diagram_type='architecture')
+        # Verify over-fetch on --oa-only (min(50, max(2*3, 25)) == 25)
+        oa_query_sent, oa_kwargs = mock_oa.call_args[0][0], mock_oa.call_args[1]
+        ax_query_sent, ax_kwargs = mock_arxiv.call_args[0][0], mock_arxiv.call_args[1]
+        self.assertEqual(oa_kwargs['limit'], 25)
+        self.assertEqual(ax_kwargs['limit'], 25)
+        self.assertIn('model architecture', oa_query_sent)
+        self.assertIn('all:hybrid', ax_query_sent)
+        self.assertIn('model architecture', ax_query_sent)
+
+        # Verify closed access dropped, direct pdf_url sorted FIRST, and diagram type recorded
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]['title'], 'Hybrid Architecture With Direct PDF')
+        self.assertEqual(results[0]['target_diagram_type'], 'architecture')
+        self.assertEqual(results[1]['title'], 'OA Landing Only Paper')
+        self.assertEqual(results[1]['target_diagram_type'], 'architecture')
+
+        with self.assertRaises(ValueError):
+            fetch_papers.search_papers('topic', diagram_type='invalid-diagram-kind')
+
+
+def _make_figure_sources(count, with_takeaway=True, with_link=True):
+    items = []
+    for idx in range(1, count + 1):
+        rec = {
+            'id': f'fig{idx}',
+            'kind': 'figure',
+            'title': f'Published Paper {idx}',
+            'locator': f'Fig. {idx}, p. {idx + 1}',
+        }
+        if with_link:
+            rec['doi'] = f'10.1234/paper.{idx}' if idx % 2 else ''
+            if idx % 2 == 0:
+                rec['url'] = f'https://arxiv.org/abs/2401.0000{idx}'
+        if with_takeaway:
+            key = 'takeaway' if idx % 2 else 'notes'
+            rec[key] = f'Adopted clear grouped lanes from figure {idx}'
+        items.append(rec)
+    return items
+
 
 class PaperFigureGroundingEnforcementTests(unittest.TestCase):
     def setUp(self):
@@ -574,43 +686,59 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
     @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_require_paper_figures_rejects_missing_or_insufficient_figure_sources(self):
         spec = minimal_spec()
-        # 1. Zero sources
+        # 1. Zero sources -> rejected (< 5)
         with self.assertRaises(ValueError) as cm:
             self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 2 inspected published figure sources", str(cm.exception))
+        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
 
-        # 2. Only 1 figure source
-        spec['sources'] = [
-            {'id': 'fig1', 'kind': 'figure', 'title': 'Paper A Architecture', 'locator': 'Fig. 2, p. 4', 'doi': '10.1234/example1'}
-        ]
-        with self.assertRaises(ValueError) as cm:
-            self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 2 inspected published figure sources", str(cm.exception))
+        # 2. 2 and 4 fully analyzed figure sources -> rejected (< 5)
+        for n in (2, 4):
+            spec['sources'] = _make_figure_sources(n)
+            with self.assertRaises(ValueError) as cm:
+                self.draw(spec, require_paper_figures=True)
+            self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
 
-        # 3. Two figure sources, but one lacks doi/url/pdf_url
-        spec['sources'].append(
-            {'id': 'fig2', 'kind': 'figure', 'title': 'Paper B Flowchart', 'locator': 'Fig. 3, p. 5'}
-        )
+        # 3. 5 figure sources, but one lacks takeaway/notes -> rejected
+        spec['sources'] = _make_figure_sources(5)
+        spec['sources'][4].pop('takeaway', None)
+        spec['sources'][4].pop('notes', None)
         with self.assertRaises(ValueError) as cm:
             self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 2 inspected published figure sources", str(cm.exception))
+        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+
+        # 4. 5 figure sources, but one lacks doi/url/pdf_url -> rejected
+        spec['sources'] = _make_figure_sources(5)
+        spec['sources'][0].pop('doi', None)
+        spec['sources'][0].pop('url', None)
+        with self.assertRaises(ValueError) as cm:
+            self.draw(spec, require_paper_figures=True)
+        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+
+        # 5. Non-positive min_paper_figures rejected
+        with self.assertRaises(ValueError):
+            self.draw(spec, require_paper_figures=True, min_paper_figures=0)
 
     @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
-    def test_require_paper_figures_accepts_two_verified_figures_and_reports_count(self):
+    def test_require_paper_figures_accepts_five_analyzed_figures_and_min_override(self):
         spec = minimal_spec()
-        spec['sources'] = [
-            {'id': 'fig1', 'kind': 'figure', 'title': 'Paper A Architecture', 'locator': 'Fig. 2, p. 4', 'doi': '10.1234/example1'},
-            {'id': 'fig2', 'kind': 'figure', 'title': 'Paper B Flowchart', 'locator': 'Fig. 3, p. 5', 'url': 'https://arxiv.org/abs/2301.00000'}
-        ]
+        spec['sources'] = _make_figure_sources(5)
         report = self.draw(spec, require_paper_figures=True, preview_only=True)
         self.assertTrue(report['passed_geometry_checks'], report['errors'])
-        self.assertEqual(report['provenance']['paper_figures_inspected'], 2)
-        self.assertEqual(report['provenance']['paper_figure_ids'], ['fig1', 'fig2'])
+        self.assertEqual(report['provenance']['paper_figures_inspected'], 5)
+        self.assertEqual(report['provenance']['paper_figure_ids'], ['fig1', 'fig2', 'fig3', 'fig4', 'fig5'])
+
+        # Explicit override min_paper_figures=2 accepts 2 analyzed figures
+        spec['sources'] = _make_figure_sources(2)
+        report_min2 = self.draw(spec, require_paper_figures=True, min_paper_figures=2, preview_only=True)
+        self.assertTrue(report_min2['passed_geometry_checks'], report_min2['errors'])
+        self.assertEqual(report_min2['provenance']['paper_figures_inspected'], 2)
 
     def test_require_paper_figures_cli_check_only(self):
         import subprocess
         import sys
+        # 4 analyzed figure sources should fail default min=5
         spec_bad = minimal_spec()
+        spec_bad['sources'] = _make_figure_sources(4)
         with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
             json.dump(spec_bad, f)
             p_bad = Path(f.name)
@@ -620,16 +748,14 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
                 capture_output=True, text=True
             )
             self.assertEqual(res_bad.returncode, 2)
-            self.assertIn("Paper-grounded mode requires at least 2 inspected published figure sources", res_bad.stderr)
+            self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", res_bad.stderr)
         finally:
             if p_bad.exists():
                 p_bad.unlink()
 
+        # 5 analyzed figure sources should pass default CLI check
         spec_good = minimal_spec()
-        spec_good['sources'] = [
-            {'id': 'fig1', 'kind': 'figure', 'title': 'Paper A Architecture', 'locator': 'Fig. 2, p. 4', 'doi': '10.1234/example1'},
-            {'id': 'fig2', 'kind': 'figure', 'title': 'Paper B Flowchart', 'locator': 'Fig. 3, p. 5', 'url': 'https://arxiv.org/abs/2301.00000'}
-        ]
+        spec_good['sources'] = _make_figure_sources(5)
         with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
             json.dump(spec_good, f)
             p_good = Path(f.name)
@@ -639,9 +765,35 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
                 capture_output=True, text=True
             )
             self.assertEqual(res_good.returncode, 0, res_good.stderr)
+
+            # Respect explicit --min-paper-figures override (6 should fail when only 5 provided)
+            res_min6 = subprocess.run(
+                [sys.executable, str(ROOT / 'scripts' / 'render_diagram.py'), str(p_good),
+                 '--check-only', '--require-paper-figures', '--min-paper-figures', '6'],
+                capture_output=True, text=True
+            )
+            self.assertEqual(res_min6.returncode, 2)
+            self.assertIn("Paper-grounded mode requires at least 6 deeply analyzed published figure sources", res_min6.stderr)
         finally:
             if p_good.exists():
                 p_good.unlink()
+
+        # Explicit --min-paper-figures 2 accepts 2 analyzed figures
+        spec_two = minimal_spec()
+        spec_two['sources'] = _make_figure_sources(2)
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+            json.dump(spec_two, f)
+            p_two = Path(f.name)
+        try:
+            res_min2 = subprocess.run(
+                [sys.executable, str(ROOT / 'scripts' / 'render_diagram.py'), str(p_two),
+                 '--check-only', '--require-paper-figures', '--min-paper-figures', '2'],
+                capture_output=True, text=True
+            )
+            self.assertEqual(res_min2.returncode, 0, res_min2.stderr)
+        finally:
+            if p_two.exists():
+                p_two.unlink()
 
     @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_borderless_legend_and_elongated_swatches(self):

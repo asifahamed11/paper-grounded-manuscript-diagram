@@ -81,16 +81,15 @@ Mathematical formulas use Matplotlib mathtext (100% free, zero external LaTeX in
 - Set `"math": true` on a node, edge or annotation (or `canvas.math: true` across the figure).
 - Or use explicit inline delimiters: `\( \alpha + \beta \)`. The renderer safely translates `\( ... \)` to `$...$` while preserving literal `$` outside formulas.
 
-## Publication themes and typography
+## Colorblind-safe scientific themes and typography
 
-The renderer includes 5 curated, publication-grade academic themes:
-- `nature-clean`: Deep ink (`#0F172A`), muted slate detail (`#475569`, `8.0 pt`), fills (`process`: `#FFFFFF`, `data`: `#EBF5F7`, `input`: `#F1F5F9`, `decision`: `#FEF7E6`, `terminator`: `#EAF6EE`), strokes (`#94A3B8`, `#2B7A8B`, `#64748B`, `#C27803`, `#1E7E5C`), connectors `#334155` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
-- `ieee-crisp`: High-contrast navy ink (`#0F172A`), steel detail (`#334155`, `8.0 pt`), fills (`#FFFFFF`, `#E8F1FA`, `#F1F5F9`, `#FEF7E0`, `#E8F5E9`), strokes (`#334155`, `#1D4ED8`, `#4A6572`, `#B45309`, `#15803D`), connectors `#1E293B` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 3.5`.
-- `neurips-soft`: Modern ML/AI aesthetic with charcoal ink (`#111827`), muted detail (`#4B5563`, `8.0 pt`), pastel fills (`#FFFFFF`, `#EEF2FF`, `#F0F9FF`, `#FEF3C7`, `#ECFDF5`), strokes (`#94A3B8`, `#4F46E5`, `#0284C7`, `#B45309`, `#047857`), connectors `#374151` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
-- `biomed-prisma`: Clinical slate ink (`#1E293B`), detail (`#475569`, `8.0 pt`), soft tints (`#FFFFFF`, `#EBF5FB`, `#F4F6F7`, `#FEF5E7`, `#EAFAF1`), strokes (`#94A3B8`, `#0284C7`, `#0D9488`, `#EA580C`, `#16A34A`), connectors `#475569` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.0`.
-- `print-mono`: 100% grayscale publication theme with ink (`#111827`), detail (`#4B5563`, `8.0 pt`), fills (`#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB`), strokes (`#374151`, `#111827`), connectors `#111827` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 3.5`.
+The renderer includes 4 flat, WCAG-compliant (`>= 4.5:1` contrast) academic themes:
+- `okabe-ito` *(General scientific default)*: Deep ink (`#0F172A`), muted slate detail (`#334155`, `8.0 pt`), header `#0072B2` with white text, clean white/tint fills (`process`: `#FFFFFF`, `data`: `#EAF4FA`, `input`: `#F0F8FD`, `decision`: `#FEF5E6`, `terminator`: `#E6F5F0`), Okabe–Ito strokes (`#475569`, `#0072B2`, `#D55E00`, `#009E73`), connectors `#1E293B` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
+- `paul-tol-muted` *(Frameworks & conceptual models)*: Charcoal ink (`#111827`), muted detail (`#374151`, `8.0 pt`), header `#332288` with white text, soft fills (`#FFFFFF`, `#EDF7FC`, `#EDF7F5`, `#FBF8EA`, `#E9F4EC`), Paul Tol Muted strokes (`#4A5568`, `#332288`, `#44AA99`, `#999933`, `#117733`), connectors `#2D3748` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.5`.
+- `paul-tol-pale` *(Text-heavy PRISMA, screening & methodology workflows)*: Dark ink (`#0F172A`), dark header text (`#0F172A`), detail (`#334155`, `8.0 pt`), Paul Tol Pale fills (`process`: `#FFFFFF`, `data`: `#CCEEFF`, `input`: `#AACCEE`, `decision`: `#EEEEBB`, `terminator`: `#BBDDBB`), crisp dark borders (`#475569`, `#2B6CB0`, `#334155`, `#856404`, `#1E6B4B`), connectors `#1E293B` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 4.0`.
+- `print-mono` *(B&W print proceedings)*: 100% grayscale publication theme with ink (`#111827`), detail (`#4B5563`, `8.0 pt`), fills (`#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB`), strokes (`#374151`, `#111827`), connectors `#111827` (`1.15 pt`), `arrow_scale: 7.0`, flat print vector (`shadow: false`), `corner_radius_pt: 3.5`.
 
-Specify a theme in the spec via `"style": {"theme": "nature-clean"}` or on the CLI via `--theme <name>`. Theme colors provide defaults; any explicit node or style attributes in the JSON specification always take precedence. The renderer also supports `style.detail_color` and `style.detail_font_pt` (default `8.0 pt` across all 5 themes) to tune subtitle typography independently.
+Specify a theme in the spec via `"style": {"theme": "okabe-ito"}` or on the CLI via `--theme <name>`. Theme colors provide defaults; any explicit node or style attributes in the JSON specification always take precedence. The renderer also supports `style.detail_color` and `style.detail_font_pt` (default `8.0 pt` across all 4 themes) to tune subtitle typography independently.
 
 Set `"canvas": {"font_family": "auto"}` to automatically detect and select the best installed sans-serif font from `['Inter', 'IBM Plex Sans', 'Liberation Sans', 'Arial', 'Helvetica', 'Segoe UI', 'DejaVu Sans']`.
 
@@ -103,7 +102,7 @@ Set `"canvas": {"font_family": "auto"}` to automatically detect and select the b
 
 ## Connectors and crossing jumps
 
-- **Arrowhead Scale (`style.arrow_scale`)**: Configurable arrowhead size (default 6.0, themes use 7.5–8.0).
+- **Arrowhead Scale (`style.arrow_scale`)**: Configurable arrowhead size (default 6.0, themes use 7.0).
 - **Crossing Jump Halos (`style.crossing_jump: true`)**: For allowed crossings (`allowed_crossings`), renders a clean 5 pt white halo behind the foreground connector to produce a clean visual gap over the background connector.
 
 ## Compact horizontal legends
@@ -114,8 +113,8 @@ Specify a top-level `legend` object to render a clean horizontal legend:
   "box": [40, 220, 300, 24],
   "frame": false,
   "items": [
-    {"label": "Input Data", "fill": "#F0F9FF", "stroke_color": "#0284C7", "kind": "node"},
-    {"label": "Evaluation Flow", "color": "#0F62FE", "kind": "edge", "shape": "line", "dashes": [3, 2]}
+    {"label": "Input Data", "fill": "#F0F8FD", "stroke_color": "#0072B2", "kind": "node"},
+    {"label": "Evaluation Flow", "color": "#1E293B", "kind": "edge", "shape": "line", "dashes": [3, 2]}
   ]
 }
 ```
@@ -153,7 +152,7 @@ Geometry failure writes a diagnostic PNG, the attempted JSON and a failed QA rec
 
 `--check-only` validates schema/geometry inputs without importing Matplotlib; it does not measure rendered labels. `validate_svg.py` checks standalone SVG structure and active/external resources; it cannot measure fonts or certify the figure's science.
 `--require-sources` enforces that substantive nodes and edges have valid `source_refs` pointing to records in `spec["sources"]`.
-`--require-paper-figures` enforces that `spec["sources"]` contains at least 2 inspected published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, and verifiable `doi`/`url`/`pdf_url`), ensuring that new diagrams are grounded in peer-reviewed domain literature.
+`--require-paper-figures` enforces that `spec["sources"]` contains deeply analyzed published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, verifiable `doi`/`url`/`pdf_url`, and nonempty `takeaway` or `notes` capturing the visual insight). Default threshold is **at least 5** (`--min-paper-figures 5`), ensuring that new diagrams synthesize genuine peer-reviewed visual conventions.
 
 ## Choosing another authoring method
 

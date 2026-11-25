@@ -48,8 +48,26 @@ class VisualEngineTests(unittest.TestCase):
 
     # 1. Themes
     def test_themes_definitions_and_application(self):
-        self.assertEqual(len(themes.THEMES), 5)
-        for theme_name in ['nature-clean', 'ieee-crisp', 'neurips-soft', 'biomed-prisma', 'print-mono']:
+        expected = {'okabe-ito', 'paul-tol-muted', 'paul-tol-pale', 'print-mono'}
+        self.assertEqual(set(themes.THEMES.keys()), expected)
+        for theme_name in sorted(expected):
+            theme = themes.THEMES[theme_name]
+            self.assertFalse(theme['shadow'], f"{theme_name} must default to flat (shadow: False)")
+            # Verify WCAG >= 4.5:1 contrast across role fills and header
+            text_c = renderer.color(theme['text_color'])
+            detail_c = renderer.color(theme['detail_color'])
+            header_tc = renderer.color(theme['header_text_color'])
+            for role, hex_fill in theme['fills'].items():
+                bg_c = renderer.color(hex_fill)
+                if role == 'header':
+                    ratio = renderer.contrast(header_tc, bg_c)
+                    self.assertGreaterEqual(ratio, 4.5, f"{theme_name} header contrast {ratio:.2f} < 4.5")
+                else:
+                    ratio_t = renderer.contrast(text_c, bg_c)
+                    ratio_d = renderer.contrast(detail_c, bg_c)
+                    self.assertGreaterEqual(ratio_t, 4.5, f"{theme_name} {role} text contrast {ratio_t:.2f} < 4.5")
+                    self.assertGreaterEqual(ratio_d, 4.5, f"{theme_name} {role} detail contrast {ratio_d:.2f} < 4.5")
+
             spec = minimal_spec()
             spec['style'] = {'theme': theme_name}
             resolved = themes.apply_theme(spec)
@@ -62,7 +80,7 @@ class VisualEngineTests(unittest.TestCase):
 
     def test_theme_preserves_explicit_user_overrides(self):
         spec = minimal_spec()
-        spec['style'] = {'theme': 'nature-clean', 'connector_color': '#FF0000'}
+        spec['style'] = {'theme': 'okabe-ito', 'connector_color': '#FF0000'}
         spec['nodes'][0]['fill'] = '#123456'
         spec['nodes'][0]['stroke_color'] = '#654321'
         resolved = themes.apply_theme(spec)
@@ -79,15 +97,15 @@ class VisualEngineTests(unittest.TestCase):
     @unittest.skipUnless(HAS_MPL, 'Optional Matplotlib is not installed')
     def test_theme_recorded_in_report(self):
         spec = minimal_spec()
-        spec['style'] = {'theme': 'neurips-soft'}
+        spec['style'] = {'theme': 'paul-tol-muted'}
         report = self.draw(spec)
         self.assertTrue(report['passed_geometry_checks'])
-        self.assertEqual(report['style']['theme'], 'neurips-soft')
+        self.assertEqual(report['style']['theme'], 'paul-tol-muted')
         self.assertFalse(report['style']['shadow'])
 
         # Explicit shadow=True
         spec_shadow = minimal_spec()
-        spec_shadow['style'] = {'theme': 'neurips-soft', 'shadow': True}
+        spec_shadow['style'] = {'theme': 'paul-tol-pale', 'shadow': True}
         report_shadow = self.draw(spec_shadow)
         self.assertTrue(report_shadow['style']['shadow'])
 

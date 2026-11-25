@@ -618,7 +618,10 @@ def main():
     parser.add_argument('--theme', choices=tuple(THEMES.keys()), help='Publication theme')
     parser.add_argument('--list-icons', action='store_true', help='List available vector icons')
     parser.add_argument('--require-sources', action='store_true')
-    parser.add_argument('--require-paper-figures', action='store_true', help='Require at least 2 inspected published paper figures in sources')
+    parser.add_argument('--require-paper-figures', action='store_true',
+                        help='Require deeply analyzed published paper figures in sources (default minimum: 5)')
+    parser.add_argument('--min-paper-figures', type=int, default=5,
+                        help='Minimum number of deeply analyzed published figure sources required with --require-paper-figures (default: 5)')
     parser.add_argument('--doctor', action='store_true', help='Check which local tools are installed')
     args = parser.parse_args()
     if args.list_icons:
@@ -641,6 +644,7 @@ def main():
                         asset_dir=args.method.parent, preview_only=args.preview_only, drawio=args.drawio,
                         tiff=args.tiff, profile=args.profile, require_sources=args.require_sources,
                         require_paper_figures=args.require_paper_figures,
+                        min_paper_figures=args.min_paper_figures,
                         eps=args.eps, theme=args.theme)
         print(json.dumps({'status': report['status'], 'exports': report['exports'], 'errors': report['errors']}, indent=2))
         return 0 if report['passed_geometry_checks'] else 1

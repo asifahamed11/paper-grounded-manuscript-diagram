@@ -1,6 +1,6 @@
 # Figure Analysis Template
 
-Use one copy of this template per inspected paper or per relevant figure.
+For every new diagram, screen extracted pages to collect **at least 5 relevant published figures of the target diagram type**, and complete one copy of this analysis per inspected figure before designing the new diagram. Distill each figure's primary lesson into `spec["sources"][i]["takeaway"]` alongside `title`, `locator`, and `doi`/`url`.
 
 ## Paper identity
 
@@ -32,25 +32,26 @@ Use one copy of this template per inspected paper or per relevant figure.
 
 ## Visual design observations
 
-- Layout:
-- Reading direction:
-- Typography:
-- Approximate type hierarchy:
+- Layout topology & reading direction:
+- Grouping & containers:
+- Shapes & notation:
+- Information density:
+- Typography & approximate hierarchy:
 - Color roles:
-- Shape conventions:
-- Arrow and connector style:
+- Arrow & connector styling:
 - Line weights:
 - Spacing and alignment:
 - Legend / annotations:
 - Density and readability:
 
-## Reusable conventions
+## Strengths to adopt & takeaways
 
-List general domain conventions or communication patterns that can inform a new figure. Do not copy the source's distinctive layout or artwork.
+List general domain conventions or communication patterns that can inform the new figure (do not copy any source artwork), and summarize one crisp insight for `spec["sources"][i]["takeaway"]`:
 
 1.
 2.
 3.
+- **Recorded `takeaway` (for `spec["sources"]`):**
 
 ## What to avoid
 

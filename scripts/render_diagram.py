@@ -145,6 +145,10 @@ def _resolve_math(label_text: str, record_or_math: dict | bool | None = None, ca
         return label_text, False
 
 
+def _nonempty_str(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
 def provenance(spec):
     """Describe supplied provenance and any uncovered substantive elements."""
     sources = spec.get('sources', [])
@@ -155,7 +159,7 @@ def provenance(spec):
         if not isinstance(source, dict):
             raise ValueError('Each source must be an object')
         for field in ('id', 'title', 'locator'):
-            if not isinstance(source.get(field), str) or not source[field].strip():
+            if not _nonempty_str(source.get(field)):
                 raise ValueError(f'Each source needs a nonempty {field}')
         if source['id'] in source_ids:
             raise ValueError(f"Duplicate source id: {source['id']}")
@@ -176,14 +180,28 @@ def provenance(spec):
     figure_sources = [
         s for s in sources
         if s.get('kind') == 'figure'
-        and isinstance(s.get('title'), str) and s['title'].strip()
-        and isinstance(s.get('locator'), str) and s['locator'].strip()
-        and any(isinstance(s.get(k), str) and s[k].strip() for k in ('doi', 'url', 'pdf_url'))
+        and _nonempty_str(s.get('title'))
+        and _nonempty_str(s.get('locator'))
+        and any(_nonempty_str(s.get(k)) for k in ('doi', 'url', 'pdf_url'))
+        and any(_nonempty_str(s.get(k)) for k in ('takeaway', 'notes'))
     ]
     return {'sources': sources, 'linked_elements': linked, 'unlinked_method_elements': uncovered,
             'paper_figures_inspected': len(figure_sources),
             'paper_figure_ids': [s['id'] for s in figure_sources],
             'review': 'Source references supplied by the author or agent; check claim support separately.'}
+
+
+def _enforce_paper_figures(prov, require_paper_figures, min_paper_figures=5):
+    """Validate min_paper_figures threshold and enforce deeply analyzed published figure grounding."""
+    if isinstance(min_paper_figures, bool) or not isinstance(min_paper_figures, int) or min_paper_figures < 1:
+        raise ValueError('min_paper_figures must be a positive integer')
+    if require_paper_figures and prov.get('paper_figures_inspected', 0) < min_paper_figures:
+        raise ValueError(
+            f"Paper-grounded mode requires at least {min_paper_figures} deeply analyzed published figure sources "
+            "(kind: 'figure' with title, locator, doi/url, and takeaway/notes). "
+            "Fetch diagram-type-matched OA papers via scripts/fetch_papers.py --diagram-type <type> "
+            "and inspect real figures with scripts/extract_pdf_figures.py first."
+        )
 
 
 def validate_spec(spec):
@@ -802,7 +820,7 @@ def publish_run(staged, output_dir, stem, report):
 
 def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
            preview_only=False, drawio=False, tiff=False, require_sources=False,
-           require_paper_figures=False, profile=None, eps=False, theme=None):
+           require_paper_figures=False, min_paper_figures=5, profile=None, eps=False, theme=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stem):
         raise ValueError("stem must be a filename without paths or extensions")
     destination = Path(output_dir).resolve()
@@ -832,12 +850,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
                 sources = provenance(spec)
                 if require_sources and sources['unlinked_method_elements']:
                     raise ValueError('Missing source references for ' + ', '.join(sources['unlinked_method_elements']))
-                if require_paper_figures and sources.get('paper_figures_inspected', 0) < 2:
-                    raise ValueError(
-                        "Paper-grounded mode requires at least 2 inspected published figure sources "
-                        "(kind: 'figure' with title, locator, and doi/url). "
-                        "Fetch and inspect open-access papers via scripts/fetch_papers.py and scripts/extract_pdf_figures.py first."
-                    )
+                _enforce_paper_figures(sources, require_paper_figures, min_paper_figures=min_paper_figures)
                 report = render_figure(spec, staging, stem, dpi, asset_dir,
                                        preview_only=preview_only, drawio=drawio, tiff=tiff or profile == 'plos-one',
                                        profile=profile, eps=eps)
@@ -1701,7 +1714,10 @@ def main():
     p.add_argument('--theme', choices=list(THEMES.keys()), help='Apply a publication theme')
     p.add_argument('--list-icons', action='store_true', help='List all available vector icons')
     p.add_argument('--require-sources', action='store_true', help='Require supplied source locators on each method node and edge')
-    p.add_argument('--require-paper-figures', action='store_true', help='Require at least 2 inspected published paper figures in sources')
+    p.add_argument('--require-paper-figures', action='store_true',
+                   help='Require deeply analyzed published paper figures in sources (default minimum: 5)')
+    p.add_argument('--min-paper-figures', type=int, default=5,
+                   help='Minimum number of deeply analyzed published figure sources required with --require-paper-figures (default: 5)')
     args=p.parse_args()
     if args.list_icons:
         for name in list_icons():
@@ -1721,17 +1737,13 @@ def main():
             prov = provenance(spec)
             if args.require_sources and prov['unlinked_method_elements']:
                 raise ValueError('Source references are missing from method nodes or edges.')
-            if args.require_paper_figures and prov.get('paper_figures_inspected', 0) < 2:
-                raise ValueError(
-                    "Paper-grounded mode requires at least 2 inspected published figure sources "
-                    "(kind: 'figure' with title, locator, and doi/url). "
-                    "Fetch and inspect open-access papers via scripts/fetch_papers.py and scripts/extract_pdf_figures.py first."
-                )
+            _enforce_paper_figures(prov, args.require_paper_figures, min_paper_figures=args.min_paper_figures)
             if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
             print('Specification valid. Rendering and visual review have not run.');return 0
         report=render(load,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent, preview_only=args.preview_only,
                       drawio=args.drawio, tiff=args.tiff, profile=args.profile, require_sources=args.require_sources,
-                      require_paper_figures=args.require_paper_figures, eps=args.eps, theme=args.theme)
+                      require_paper_figures=args.require_paper_figures, min_paper_figures=args.min_paper_figures,
+                      eps=args.eps, theme=args.theme)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
                           'layout_advisories':report['layout']['advisories'],
                           'status':report['status'],'visual_review':report['visual_review'],'exports':report['exports']},indent=2))

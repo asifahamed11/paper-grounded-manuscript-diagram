@@ -37,11 +37,11 @@ Each `sources` record needs an `id`, `title` and `locator`. Optional `kind` dist
 
 `--require-sources` checks that named references exist and cover substantive nodes and edges. The QA report lists all links and missing references. Verify that the specified location supports the claim, numbers, role and arrow direction. A bibliography entry alone cannot establish that support. Keep unpublished evidence in the local project.
 
-`--require-paper-figures` enforces that at least 2 inspected published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, and verifiable `doi`/`url`/`pdf_url`) are present in `spec["sources"]`. Use it alongside `--require-sources` for every new manuscript diagram to ensure visual and methodological peer-reviewed literature grounding.
+`--require-paper-figures` enforces that deeply analyzed published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, verifiable `doi`/`url`/`pdf_url`, and nonempty `takeaway` or `notes`) are present in `spec["sources"]` (default minimum: **5**, configurable via `--min-paper-figures`). Use it alongside `--require-sources` for every new manuscript diagram to ensure thorough visual and methodological peer-reviewed literature grounding.
 
 ## Prefer a clean starting composition
 
-Assign Okabe–Ito accents to roles that help the reader, such as blue for an input, orange for a decision, green for an outcome and reddish purple for context. Keep the primary path recognisable in grayscale. Pair strong accents with readable text and leave ordinary steps on quieter backgrounds. Review the visual order of branches and use a separate annotation for a needed legend. Use `--preview-only` for comparing alternatives. Give each candidate its own stem.
+Choose a flat, colorblind-safe scientific theme (`okabe-ito` for general workflows/ML pipelines, `paul-tol-muted` for conceptual/framework models, `paul-tol-pale` for text-heavy PRISMA/flowcharts, or `print-mono` for B&W print) via `"style": {"theme": "..."}` or `--theme`. Keep the primary path recognisable in grayscale, pair strong accents with readable dark ink, and reserve ordinary steps for quiet backgrounds. Review the visual order of branches and use a borderless horizontal `legend` or annotation when explaining line styles or shared roles. Use `--preview-only` for comparing alternatives. Give each candidate its own stem.
 
 Compare the full composition at the intended width. Keep room between parallel branches, around arrowheads and near branch labels. Choose the layout that reads most naturally, even if another candidate has a higher occupancy fraction.
 

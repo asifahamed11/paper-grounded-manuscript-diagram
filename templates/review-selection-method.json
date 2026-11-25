@@ -35,7 +35,7 @@
       "lane": "selection",
       "label": "Screen records",
       "detail": "Review titles and abstracts",
-      "fill": "#EAF4FB",
+      "fill": "#CCEEFF",
       "stroke_color": "#2B6CB0",
       "source_refs": [
         "prisma-reporting"
@@ -51,15 +51,15 @@
         "prisma-selection"
       ],
       "fill": "#FFFFFF",
-      "stroke_color": "#94A3B8",
+      "stroke_color": "#475569",
       "text_color": "#0F172A"
     },
     {
       "id": "screen-out",
       "lane": "recorded exits",
       "label": "Excluded at screening",
-      "fill": "#FDF3F0",
-      "stroke_color": "#C2573A",
+      "fill": "#FFBBCC",
+      "stroke_color": "#9B4D6B",
       "source_refs": [
         "prisma-selection"
       ],
@@ -70,8 +70,8 @@
       "lane": "selection",
       "shape": "decision",
       "label": "Eligible?",
-      "fill": "#FEF5E4",
-      "stroke_color": "#C27803",
+      "fill": "#EEEEBB",
+      "stroke_color": "#856404",
       "source_refs": [
         "prisma-selection"
       ],
@@ -81,8 +81,8 @@
       "id": "unavailable",
       "lane": "recorded exits",
       "label": "Reports not retrieved",
-      "fill": "#FDF3F0",
-      "stroke_color": "#C2573A",
+      "fill": "#FFBBCC",
+      "stroke_color": "#9B4D6B",
       "source_refs": [
         "prisma-selection"
       ],
@@ -94,11 +94,11 @@
       "shape": "terminator",
       "label": "Include studies",
       "detail": "Record associated reports",
-      "fill": "#E8F5EE",
+      "fill": "#BBDDBB",
       "source_refs": [
         "prisma-selection"
       ],
-      "stroke_color": "#1E7E5C",
+      "stroke_color": "#1E6B4B",
       "text_color": "#0F172A"
     },
     {
@@ -106,8 +106,8 @@
       "lane": "recorded exits",
       "label": "Exclude reports",
       "detail": "Document reasons",
-      "fill": "#FDF3F0",
-      "stroke_color": "#C2573A",
+      "fill": "#FFBBCC",
+      "stroke_color": "#9B4D6B",
       "source_refs": [
         "prisma-reporting"
       ],
@@ -168,7 +168,7 @@
     }
   ],
   "style": {
-    "theme": "biomed-prisma",
+    "theme": "paul-tol-pale",
     "detail_font_pt": 8.5,
     "title_detail_gap_pt": 2.4,
     "arrow_scale": 7.0,

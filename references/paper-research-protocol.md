@@ -6,7 +6,13 @@ Build a defensible reference set for the requested figure. The goal is not simpl
 
 ## 1. Search strategy
 
-Use multiple query patterns:
+Classify the user's requested diagram type first (`workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, or `graphical-abstract`), then run targeted open-access discovery:
+
+```sh
+python scripts/fetch_papers.py "<topic>" --diagram-type <type> --oa-only --limit 20 --output papers.csv
+```
+
+If initial screening yields fewer than 5 papers actually containing that diagram type, broaden or re-query using additional patterns:
 
 - exact research topic + requested figure type;
 - core method/model + workflow or architecture;
@@ -51,7 +57,7 @@ Citation influence is log-normalized within the candidate set to reduce dominati
 
 ## 3. Access and inspection scope
 
-For every new diagram, grounding the visual layout, grouping conventions, and notation in peer-reviewed domain literature is the **mandatory default**. Inspect 3–5 relevant open-access paper full texts and visually analyze 2–4 directly useful figures and captions (with a minimum of 2 verified figure sources recorded in `spec["sources"]` having `kind: "figure"`, title, exact figure/page locator, and a verifiable DOI or URL). A styling correction or typo fix to an existing verified diagram does not require a fresh literature search. If the user explicitly requests no literature search, honor that exemption and disclose it.
+For every new diagram, grounding visual layout, grouping conventions, and notation in peer-reviewed domain literature is the **mandatory default**. Screen candidate open-access PDFs targeted via `--diagram-type <type>`, **discard off-type papers**, and extract and deeply analyze **at least 5 relevant published diagrams** matching the requested diagram type (recording all $\ge 5$ verified `kind: "figure"` entries in `spec["sources"]` with `title`, exact `locator`, verifiable `doi`/`url`/`pdf_url`, and nonempty `takeaway` or `notes`). A minor styling or typo fix to an existing verified diagram does not require a fresh literature search. If the user explicitly requests no literature search, honor that exemption and disclose it.
 
 A paper counts as **downloaded and inspected** only if:
 - a full-text PDF or equivalent full text was actually obtained;

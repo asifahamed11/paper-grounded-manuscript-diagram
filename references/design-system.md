@@ -33,17 +33,16 @@ Follow the user or journal palette when specified. Otherwise, choose the palette
 
 Use these hex values in the renderer's colour fields.
 
-### Publication Themes
+### Scientific Palette Themes
 
-The system provides 5 ready-to-publish themes configured for specific academic venue requirements and visual standards:
+The system provides 4 flat, WCAG-compliant (`>= 4.5:1` contrast, `shadow: false`) scientific palette themes:
 
-| Theme | Best For | Role Fills (`process`, `data`, `input`, `decision`) | Text / Detail / Connectors | Card Polish (All `shadow: false`, `arrow_scale: 7.0`) |
+| Theme | Best For | Role Fills (`process`, `data`, `input`, `decision`, `terminator`) | Text / Detail / Connectors | Card Polish (All `shadow: false`, `arrow_scale: 7.0`) |
 |---|---|---|---|---|
-| `nature-clean` | Nature, Springer, Cell | `#FFFFFF`, `#EBF5F7`, `#F1F5F9`, `#FEF7E6` | `#0F172A` / `#475569` / `#334155` | Flat vector, 0.85 pt hairline borders, 4.5 pt corners |
-| `ieee-crisp` | IEEE Transactions, ACM | `#FFFFFF`, `#E8F1FA`, `#F1F5F9`, `#FEF7E0` | `#0F172A` / `#334155` / `#1E293B` | Flat vector, 0.85 pt structural borders, 3.5 pt corners |
-| `neurips-soft` | NeurIPS, ICML, ICLR | `#FFFFFF`, `#EEF2FF`, `#F0F9FF`, `#FEF3C7` | `#111827` / `#4B5563` / `#374151` | Flat vector, 0.85 pt borders, 4.5 pt corners, indigo/green tints |
-| `biomed-prisma` | PLOS ONE, Lancet, BMJ | `#FFFFFF`, `#EBF5FB`, `#F4F6F7`, `#FEF5E7` | `#1E293B` / `#475569` / `#475569` | Flat vector, calm clinical tints, 0.85 pt borders, 4.0 pt corners |
-| `print-mono` | B&W Print Proceedings | `#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB` | `#111827` / `#4B5563` / `#111827` | Grayscale-only, flat vector, 0.85 pt borders, 3.5 pt corners |
+| `okabe-ito` | General scientific default — ML/AI pipelines, experimental workflows, labelled comparisons | `#FFFFFF`, `#EAF4FA`, `#F0F8FD`, `#FEF5E6`, `#E6F5F0` | `#0F172A` / `#334155` / `#1E293B` | Flat vector, 0.85 pt borders, 4.5 pt corners, Okabe–Ito strokes |
+| `paul-tol-muted` | Research frameworks, conceptual models, multi-category architectures | `#FFFFFF`, `#EDF7FC`, `#EDF7F5`, `#FBF8EA`, `#E9F4EC` | `#111827` / `#374151` / `#2D3748` | Flat vector, 0.85 pt borders, 4.5 pt corners, Paul Tol Muted strokes |
+| `paul-tol-pale` | Text-heavy PRISMA diagrams, screening workflows, decision flowcharts, methodology pipelines | `#FFFFFF`, `#CCEEFF`, `#AACCEE`, `#EEEEBB`, `#BBDDBB` | `#0F172A` / `#334155` / `#1E293B` | Flat vector, dark structural borders, 0.85 pt lines, 4.0 pt corners |
+| `print-mono` | Grayscale & B&W print proceedings | `#FFFFFF`, `#F3F4F6`, `#E5E7EB`, `#F9FAFB`, `#F3F4F6` | `#111827` / `#4B5563` / `#111827` | Grayscale-only, flat vector, 0.85 pt borders, 3.5 pt corners |
 
 ### Palette rules
 

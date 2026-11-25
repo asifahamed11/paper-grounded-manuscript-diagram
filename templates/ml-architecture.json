@@ -1,176 +1,226 @@
 {
-  "title": "Deep Learning Architecture Pipeline",
-  "description": "End-to-end multimodal neural network with tokenization, self-attention backbone, and objective classification head.",
+  "title": "Calibration-Aware Training & Leakage-Free Evaluation Pipeline",
+  "description": "Four-stage horizontal double-column architecture with shaded backbone and calibration containers, validation feedback loop, and isolated held-out test path.",
   "canvas": {
-    "width_pt": 480,
-    "height_pt": 260,
+    "width_pt": 515.0,
+    "height_pt": 248.0,
     "font_family": "auto",
-    "font_pt": 9,
-    "min_font_pt": 7.5,
+    "font_pt": 9.0,
+    "min_font_pt": 8.0,
     "math": true
   },
   "style": {
-    "theme": "neurips-soft",
-    "corner_radius_pt": 6,
+    "theme": "okabe-ito",
+    "corner_radius_pt": 4.5,
     "line_width_pt": 0.85,
-    "connector_width_pt": 1.2,
-    "arrow_scale": 8.0,
+    "connector_width_pt": 1.15,
+    "arrow_scale": 7.0,
     "shadow": false,
-    "crossing_jump": true
+    "crossing_jump": true,
+    "detail_color": "#334155",
+    "detail_font_pt": 8.0,
+    "title_detail_gap_pt": 2.2
   },
   "sources": [
     {
-      "id": "transformer-arch",
+      "id": "pipeline-arch",
       "kind": "method",
-      "title": "Attention Is All You Need",
-      "locator": "Section 3.1, Figure 1"
+      "title": "Calibration-Aware Representation & Split Isolation Specification",
+      "locator": "Pipeline Stages 1-4"
     }
   ],
   "nodes": [
     {
-      "id": "input-tokens",
-      "shape": "input",
-      "box": [20, 50, 95, 48],
-      "label": "Raw Input",
-      "detail": "Multimodal tokens",
-      "source_refs": ["transformer-arch"]
-    },
-    {
-      "id": "embed",
-      "shape": "process",
-      "box": [145, 50, 105, 48],
-      "label": "Token Embedding",
-      "detail": "\\( \\mathbf{z}_0 \\in \\mathbb{R}^{B \\times D} \\)",
+      "id": "train-split",
+      "shape": "data",
+      "box": [10, 40, 102, 58],
+      "label": "Training Corpus",
+      "detail": "Tokens \\( \\mathbf{x}_i \\in \\mathbb{R}^{d_0} \\)",
       "math": true,
-      "source_refs": ["transformer-arch"]
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "backbone",
+      "id": "test-split",
+      "shape": "input",
+      "box": [10, 168, 102, 40],
+      "label": "Held-Out Test",
+      "detail": "Zero-leakage split",
+      "fill": "#FDF2F8",
+      "stroke_color": "#CC79A7",
+      "source_refs": ["pipeline-arch"]
+    },
+    {
+      "id": "grp-backbone",
       "shape": "group",
-      "box": [275, 15, 185, 175],
-      "label": "Transformer Backbone",
+      "box": [130, 12, 128, 144],
+      "label": "Backbone Encoder",
+      "label_height_pt": 24,
       "container_fill": "#F8FAFC",
       "border_style": "dashed"
     },
     {
+      "id": "embed",
+      "shape": "process",
+      "box": [138, 42, 112, 48],
+      "label": "Token Projection",
+      "detail": "\\( \\mathbf{h} = f_\\theta(\\mathbf{x}) \\in \\mathbb{R}^d \\)",
+      "math": true,
+      "source_refs": ["pipeline-arch"]
+    },
+    {
       "id": "attn",
       "shape": "process",
-      "box": [290, 48, 155, 60],
+      "box": [138, 100, 112, 46],
       "label": "Self-Attention",
-      "detail": "\\( \\text{Softmax}(QK^T) V \\)",
-      "math": true,
-      "source_refs": ["transformer-arch"]
+      "detail": "Residual LayerNorm",
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "ffn",
+      "id": "grp-calib",
+      "shape": "group",
+      "box": [276, 12, 130, 144],
+      "label": "Objective & Calibration",
+      "label_height_pt": 24,
+      "container_fill": "#F8FAFC",
+      "border_style": "dashed"
+    },
+    {
+      "id": "objective",
       "shape": "process",
-      "box": [290, 122, 155, 48],
-      "label": "Feed-Forward MLP",
-      "detail": "GELU + LayerNorm",
-      "source_refs": ["transformer-arch"]
-    },
-    {
-      "id": "loss",
-      "shape": "terminator",
-      "box": [145, 145, 105, 50],
-      "label": "Objective Head",
-      "detail": "\\( \\mathcal{L}_{total} = \\mathcal{L}_{CE} + \\lambda \\mathcal{L}_{reg} \\)",
+      "box": [284, 42, 114, 48],
+      "label": "Joint Loss",
+      "detail": "\\( \\mathcal{L}_{\\text{CE}} + \\lambda \\mathcal{L}_{\\text{cal}} \\)",
       "math": true,
-      "source_refs": ["transformer-arch"]
+      "fill": "#FEF5E6",
+      "stroke_color": "#D55E00",
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "output",
-      "shape": "data",
-      "box": [20, 145, 95, 50],
-      "label": "Predictions",
-      "detail": "Softmax distribution",
-      "source_refs": ["transformer-arch"]
+      "id": "temp-scale",
+      "shape": "process",
+      "box": [284, 100, 114, 46],
+      "label": "Temp. Scaling",
+      "detail": "\\( \\hat{p}_i = \\sigma(z_i / T^*) \\)",
+      "math": true,
+      "fill": "#E6F5F0",
+      "stroke_color": "#009E73",
+      "source_refs": ["pipeline-arch"]
+    },
+    {
+      "id": "eval",
+      "shape": "terminator",
+      "box": [422, 82, 83, 52],
+      "label": "Evaluate",
+      "detail": "AUROC & ECE",
+      "source_refs": ["pipeline-arch"]
     }
   ],
   "edges": [
     {
-      "id": "e-input-embed",
-      "from": "input-tokens",
+      "id": "e-train-embed",
+      "from": "train-split",
       "to": "embed",
-      "points": [[115, 74], [145, 74]],
-      "source_refs": ["transformer-arch"]
+      "points": [[112, 66], [138, 66]],
+      "source_refs": ["pipeline-arch"]
     },
     {
       "id": "e-embed-attn",
       "from": "embed",
       "to": "attn",
-      "points": [[250, 74], [270, 74], [270, 78], [290, 78]],
-      "source_refs": ["transformer-arch"]
+      "points": [[194, 90], [194, 100]],
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "e-attn-ffn",
+      "id": "e-attn-obj",
       "from": "attn",
-      "to": "ffn",
-      "points": [[367, 108], [367, 122]],
-      "source_refs": ["transformer-arch"]
+      "to": "objective",
+      "points": [[250, 123], [267, 123], [267, 66], [284, 66]],
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "e-ffn-loss",
-      "from": "ffn",
-      "to": "loss",
-      "points": [[290, 146], [270, 146], [270, 170], [250, 170]],
-      "source_refs": ["transformer-arch"]
+      "id": "e-obj-temp",
+      "from": "objective",
+      "to": "temp-scale",
+      "points": [[341, 90], [341, 100]],
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "e-loss-output",
-      "from": "loss",
-      "to": "output",
-      "points": [[145, 170], [115, 170]],
-      "source_refs": ["transformer-arch"]
+      "id": "e-temp-eval",
+      "from": "temp-scale",
+      "to": "eval",
+      "points": [[398, 123], [412, 123], [412, 108], [422, 108]],
+      "source_refs": ["pipeline-arch"]
+    },
+    {
+      "id": "e-cal-loop",
+      "from": "temp-scale",
+      "to": "attn",
+      "points": [[341, 146], [341, 174], [194, 174], [194, 146]],
+      "style": "dashed",
+      "color": "#009E73",
+      "label": "Val. calibration T*",
+      "meaning": "Validation temperature feedback to backbone representation",
+      "source_refs": ["pipeline-arch"]
+    },
+    {
+      "id": "e-test-eval",
+      "from": "test-split",
+      "to": "eval",
+      "points": [[112, 192], [463, 192], [463, 134]],
+      "style": "dashed",
+      "color": "#CC79A7",
+      "label": "Leakage-free test path (eval only)",
+      "meaning": "Held-out evaluation split bypasses training and tuning",
+      "source_refs": ["pipeline-arch"]
     }
   ],
   "icons": [
     {
-      "id": "icon-docs",
-      "vector_icon": "documents",
-      "node": "input-tokens",
+      "id": "icon-corpus",
+      "vector_icon": "database",
+      "node": "train-split",
       "placement": "title",
-      "size_pt": [14, 14],
-      "alt": "Document and token input stream",
-      "source_refs": ["transformer-arch"]
+      "size_pt": [12, 12],
+      "alt": "Training corpus database",
+      "source_refs": ["pipeline-arch"]
     },
     {
-      "id": "icon-attn",
-      "vector_icon": "neural_net",
-      "node": "attn",
+      "id": "icon-eval",
+      "vector_icon": "check",
+      "node": "eval",
       "placement": "title",
-      "size_pt": [14, 14],
-      "alt": "Neural self-attention mechanism",
-      "source_refs": ["transformer-arch"]
-    },
-    {
-      "id": "icon-out",
-      "vector_icon": "chart_bar",
-      "node": "output",
-      "placement": "title",
-      "size_pt": [14, 14],
-      "alt": "Output prediction distribution",
-      "source_refs": ["transformer-arch"]
+      "size_pt": [12, 12],
+      "alt": "Evaluation metrics check",
+      "source_refs": ["pipeline-arch"]
     }
   ],
   "legend": {
-    "box": [20, 222, 440, 26],
+    "box": [10, 218, 495, 22],
     "frame": false,
     "items": [
       {
-        "label": "Input & Data",
-        "fill": "#F0F9FF",
-        "stroke_color": "#0284C7"
+        "label": "Training & Backbone",
+        "fill": "#EAF4FA",
+        "stroke_color": "#0072B2"
       },
       {
-        "label": "Attention & Core",
-        "fill": "#EEF2FF",
-        "stroke_color": "#4F46E5"
+        "label": "Loss Formulation",
+        "fill": "#FEF5E6",
+        "stroke_color": "#D55E00"
       },
       {
-        "label": "Loss & Optimization",
-        "fill": "#FEF3C7",
-        "stroke_color": "#B45309"
+        "label": "Val. Calibration Loop",
+        "kind": "edge",
+        "style": "dashed",
+        "color": "#009E73",
+        "arrow": "end"
+      },
+      {
+        "label": "Held-Out Test Only",
+        "kind": "edge",
+        "style": "dashed",
+        "color": "#CC79A7",
+        "arrow": "end"
       }
     ]
   }
