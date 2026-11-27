@@ -31,7 +31,9 @@ send only public topic or bibliographic queries to external services.
   five distinct, inspected published papers. Respect any source set or count
   specified by the user. For a focused drawing or a style revision, reuse
   supplied or previously inspected references when they answer the design
-  question. Read the [paper protocol](references/paper-research-protocol.md).
+  question. For a local-only or no-search task, use the supplied evidence and
+  record that scope. Leave precedents empty if no figures were inspected.
+  Read the [paper protocol](references/paper-research-protocol.md).
 - Search with public terms for the topic **and the relationship the figure
   needs to communicate**. Check the actual figure, caption, and surrounding
   text. Distinguish publication from preprint and report any access shortfall.
