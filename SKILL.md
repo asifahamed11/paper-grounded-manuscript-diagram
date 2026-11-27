@@ -1,140 +1,77 @@
 ---
 name: paper-grounded-manuscript-diagram
-description: Create or refine editable research workflows, method schematics and conceptual diagrams from a manuscript, method or existing figure. Use for academic diagram design, with relevant paper-figure review when it adds value; route numerical plots and geographic maps to their own tools.
+description: Create or refine editable research diagrams from a manuscript, method, code, or existing figure. Covers scientific workflows, model and system architecture, conceptual diagrams, and multi-panel compositions. Use comparable published figures for design decisions when applicable. Route map and quantitative plot creation to their dedicated tools.
 ---
 
 # Paper-Grounded Manuscript Diagram
 
-Design publication-grade, reproducible scientific workflows, method schematics, and conceptual diagrams grounded in actual manuscript text and inspected peer-reviewed literature. All operations use 100% free, local Python tools (matplotlib, Pillow, numpy, PyMuPDF) with zero paid APIs, cloud services, or external model downloads.
+Deliver an original, readable figure at its intended print size. The study's
+manuscript, code, and data support the scientific content. Published figures
+inform how to communicate that content. Keep unpublished material local and
+send only public topic or bibliographic queries to external services.
 
-**Privacy & Legal Compliance**: Keep unpublished manuscripts, experimental protocols, and extracted figure data strictly local. Use only legal, open-access sources for visual convention research. Record figure inspection precedents and design decisions in the project's review/QA notes, never by modifying skill reference files.
+## Decide what the figure must explain
 
-## 1. Select the Workflow Scope & Core Philosophy
+- Determine the reader's question, what has to be visible to answer it, the
+  target width, and the required output formats. Choose overview, mechanism
+  detail, or both. Use more than one panel when separate views help the reader
+  follow the study at the target size.
+- Choose a recipe in [figure planning](references/figure-planning.md).
+  Architecture, decision flow, association, and chronology use different
+  relations. A multi-panel figure can combine several kinds of view.
+- Record the important components and relationships with local manuscript or
+  code locators before styling. A connection the reader must trace needs a
+  drawn edge or an explicit handoff between panels. Keep supported operations,
+  units, counts, and data roles intact. Ask about missing facts only when the
+  answer materially affects the figure.
 
-> [!IMPORTANT]
-> **Perfection Over Speed:** Never rush or settle for "good enough". Take as many planning, inspection, and refinement iterations as necessary so the final diagram is publication-perfect, scientifically exact, balanced, clean, and indistinguishable from a human-crafted Illustrator/Figma/TikZ figure.
+## Select and use comparable figures
 
-### Mandatory Grounding & Workflow Modes
+- For a new complex figure or a requested deep design review, aim for at least
+  five distinct, inspected published papers. Respect any source set or count
+  specified by the user. For a focused drawing or a style revision, reuse
+  supplied or previously inspected references when they answer the design
+  question. Read the [paper protocol](references/paper-research-protocol.md).
+- Search with public terms for the topic **and the relationship the figure
+  needs to communicate**. Check the actual figure, caption, and surrounding
+  text. Distinguish publication from preprint and report any access shortfall.
+  Use candidate rankings for discovery and verify figure inspection against
+  the opened paper.
+- In the [review record](references/figure-analysis-template.md), connect each
+  precedent's observation to a specific design decision and to the panel,
+  nodes, or edges where it appears. Explain precedents you omit. Draw original
+  artwork and use the user's method to resolve each relationship.
 
-| Scope | Pipeline & Actions | Enforcement |
-|---|---|---|
-| **New Figure (MANDATORY DEFAULT)** | Even when complete manuscript text or code is provided, **FIRST** classify the target diagram type (`workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, `graphical-abstract`), then run diagram-type-targeted paper discovery (`fetch_papers.py --diagram-type <type> --oa-only --limit 20` → `score_papers.py` → download legal OA PDFs → `extract_pdf_figures.py` → `build_contact_sheet.py`). Visually screen pages, **discard off-type papers**, and deeply analyze **at least 5 relevant published diagrams** of that exact type BEFORE drafting the diagram. Include all $\ge 5$ inspected figures in `spec["sources"]` (`"kind": "figure"` with `title`, `locator`, `doi`/`url`, and `takeaway`). | Execute with `--require-sources --require-paper-figures` (enforces $\ge 5$ deeply analyzed figure sources with verifiable links and `takeaway`/`notes`; adjustable via `--min-paper-figures`). |
-| **Figure Polish / Refactoring** | Improve spacing, colors, hierarchy, or alignment of an already-verified existing spec. Re-running paper search is not required for minor typo/color/spacing adjustments on existing diagrams. | Run with `--require-sources`. |
-| **Multi-Format Export** | Render vector PDF, editable SVG, 600-DPI PNG, TIFF, EPS, and native Draw.io diagram. | Full format suite generated automatically. |
+## Build and review the layout
 
-### Autonomous Defaults (For Short, Simple User Prompts)
+- For layerable workflows, start with [the planner](references/method-to-figure.md).
+  For closely coupled feature levels, nested system boundaries, conceptual
+  networks, and mixed panels, choose an appropriate template and use the
+  [explicit renderer](references/rendering.md) when the planner cannot produce
+  the intended composition.
+- When a layout is crowded or routing fails, keep the evidence-backed
+  connections. Check the diagnostic and attempt JSON, then choose a different
+  arrangement, draw explicit routes, or split the explanation into linked
+  panels. For a dense diagram, compare the plausible alternatives at the same
+  physical width before selecting one.
+- Use [design conventions](references/diagram-conventions.md) and
+  [print styling](references/design-system.md) for the chosen figure. Use
+  shape, grouping, annotation, or line style when it conveys information.
+  Keep illustrations and icons limited to those that help identify a real
+  component. [Icon preparation](references/icon-workflow.md) is optional.
 
-When a user gives a brief request without mentioning themes, dimensions, flags, or paper research (e.g., *"Draw a methodology figure from my paper/code"*), automatically apply all defaults without asking unnecessary technical questions:
-- **Mandatory Diagram-Type-Matched 5-Figure Workflow:**
-  1. **Classify Diagram Type First:** Choose the best match (`workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, `graphical-abstract`).
-  2. **Targeted Paper Discovery (NO Random Papers):** Run `fetch_papers.py "<topic>" --diagram-type <type> --oa-only --limit 20 --output papers.csv` → `score_papers.py` → download legal OA PDFs → extract pages with `extract_pdf_figures.py` + `build_contact_sheet.py`.
-  3. **Strict Diagram Screening:** Visually inspect extracted pages and **discard any paper that does NOT contain a relevant diagram of the requested type**. Keep screening additional OA PDFs until you have **$\ge 5$ relevant published diagrams** of that exact type.
-  4. **Deep Structured Analysis Before Drafting:** Analyze all $\ge 5$ relevant diagrams in `figure-review.md` (layout topology, reading direction, grouping/containers, shapes & notation, information density, typography, arrow styling, strengths to adopt, flaws to avoid), then synthesize an original custom diagram tailored strictly to the user's method.
-  5. **Code-Enforced Grounding:** Record all $\ge 5$ analyzed figures in `spec["sources"]` (`kind: "figure"` with `title`, `locator`, `doi`/`url`, and `takeaway`) and render with `--require-sources --require-paper-figures --drawio`.
-- **Colorblind-Safe Scientific Palette Auto-Selection:**
-  - **General scientific, ML/DL/AI pipelines, experimental workflows**: `"theme": "okabe-ito"` (paired with `--profile ieee-double` or `nature-double` as appropriate).
-  - **Research frameworks, conceptual models, multi-category architectures**: `"theme": "paul-tol-muted"`.
-  - **Text-heavy workflows, PRISMA, screening & decision flowcharts**: `"theme": "paul-tol-pale"`.
-  - **Grayscale / B&W print**: `"theme": "print-mono"`.
-- **Human-Crafted Print Defaults:** `"font_family": "auto"`, flat vector (`shadow: false`), clean pastel rounded rectangles (use consistent `process` boxes for tall blocks rather than over-rounded tall `terminator` squircles), bold titles + muted slate subtitles, sans-serif inline math `\( ... \)`, at most 0–2 understated vector icons, and borderless (`"frame": false`) legend ONLY when encoding non-obvious line styles or shared roles.
+## Verify and deliver
 
-**Only Allowed Exemptions to Paper Search:**
-Skip literature search **ONLY** when:
-1. The user explicitly requests no literature search, or
-2. The task is a minor typo, color, or spacing fix on an already-verified existing diagram.
-
-If network or OA full-text access genuinely fails after trying both OpenAlex and arXiv, **never fabricate paper records**—disclose the exact shortfall in the QA report and proceed honestly with evidence limitations clearly documented.
-
-## 2. Diagram-Type-Matched 5-Figure Grounding Pipeline
-
-For every new diagram, discover and analyze published diagrams matching the exact requested diagram type:
-
-1. **Classify the Diagram Type**: Select `--diagram-type` from `workflow`, `architecture`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, or `graphical-abstract`.
-2. **Targeted Query & OA Retrieval**: Search OpenAlex and arXiv with `--oa-only` prioritization and zero API keys:
-   ```bash
-   python scripts/fetch_papers.py "single-cell RNA-seq clustering" --diagram-type workflow --limit 20 --oa-only --output papers.csv
-   ```
-3. **Score, Extract & Screen Out Off-Type Papers**:
-   ```bash
-   python scripts/score_papers.py papers.csv --output scored.csv
-   python scripts/extract_pdf_figures.py paper.pdf --output-dir extracted/
-   python scripts/build_contact_sheet.py extracted/ --output contact.png
-   ```
-   Visually inspect extracted pages and **discard any paper lacking a relevant diagram of the requested type**. Keep screening additional OA PDFs until you have **at least 5 relevant published diagrams of that exact type**.
-4. **Deep Structured Analysis ($\ge 5$ Diagrams)**: Before drafting boxes or routes, complete structured reviews for all 5+ diagrams in `figure-review.md` covering layout topology, reading direction, grouping/containers, shapes & notation, information density, typography, arrow styling, strengths to adopt, and flaws to avoid. Synthesize recurring conventions into an original design for the user's method and record a concise `takeaway` in each `spec["sources"]` figure entry.
-
-## 3. Diagram Planning & Composition
-
-For standard methods, parallel lanes, skip-rank DAGs, or cyclic feedback loops, author or generate a method JSON specification and run the deterministic layout planner:
-
-```bash
-python scripts/plan_diagram.py method.json --output-dir output --stem figure-01 --theme okabe-ito --profile nature-single --require-sources --require-paper-figures
-```
-
-- **Relationships**: Planner resolves row ranking (`rank`), parallel lane assignment (`col`), skip-rank corridor routing, feedback loops (outer return corridors), and horizontal left-to-right pipelines (`"direction": "horizontal"`).
-- **Grounding Evidence**: Declare top-level method sources (`"kind": "method"`) AND at least **5** deeply analyzed published figure sources (`"kind": "figure"`, `"title"`, `"locator"`, `"doi"` or `"url"`, and `"takeaway"`), linking substantive nodes and edges via `"source_refs"`. Enforce coverage via `--require-sources --require-paper-figures`.
-
-## 4. Visual Masterpiece Engine & Styling
-
-The core renderer (`scripts/render_diagram.py`) applies publication aesthetics:
-
-- **Colorblind-Safe Scientific Themes (`--theme`)**: `okabe-ito` (general scientific default — ML/AI pipelines, experimental workflows, labelled comparisons), `paul-tol-muted` (research frameworks, conceptual models, multi-category architectures), `paul-tol-pale` (text-heavy PRISMA diagrams, screening workflows, decision flowcharts), `print-mono` (black & white print proceedings). Custom node colors override theme defaults. All themes use flat crisp vector (`shadow: false`, WCAG $\ge 4.5:1$ contrast).
-- **Journal Profiles (`--profile`)**: Calibrated column widths: `ieee-single` (88 mm), `ieee-double` (181 mm), `nature-single` (89 mm), `nature-double` (183 mm), `springer-lncs` (122 mm), `elsevier-double` (190 mm), `plos-one` (171.45 mm).
-- **Modern Typography**: Set `"font_family": "auto"` to automatically select the cleanest installed sans-serif (`Inter`, `Arial`, `Helvetica`, `Segoe UI`, fallback `DejaVu Sans`).
-- **Accents & Badges**: Add distinct visual cues via `"accent": "left"` / `"top"` (with optional `"accent_color"`) and `"badge": "Phase 1"` (with `"badge_fill"` / `"badge_text_color"`).
-- **Containers & Groups**: Structural containers use `"container_fill"` (solid tint or transparent) with dashed or solid borders and collision-free headers.
-- **Legends**: Compact horizontal `"legend"` with swatches (`kind: "node"` with `fill`/`stroke_color`, or `kind: "edge"` / `shape: "line"` with arrow and dashed options).
-- **Crisp Math Expressions**: `\( ... \)` syntax renders math automatically (e.g. `\( \alpha + \beta \)`). Embedded `$...$` syntax is rendered as math when `"math": true` (default `parse_math=False` preserves literal `$100`).
-
-### Human-Crafted Academic Aesthetic (Avoid the AI-Generated Look)
-
-Real top-journal figures (Nature, IEEE, NeurIPS, *Attention Is All You Need*) look human-crafted in Adobe Illustrator, Figma, or LaTeX TikZ. Avoid "AI-generated SaaS card" over-styling:
-1. **Flat, restrained, print-first:** Top-tier figures are flat vector schematics with clean pastel fills, crisp 0.8–1.0 pt borders, and generous alignment — **NEVER** stack drop shadows + SaaS corner badges + side accent stripes + UI icons all at once on every card.
-2. **Typography carries the hierarchy:** Use bold dark titles (`9.0–10.0 pt`) + smaller muted-slate subtitles (`detail_color: "#475569"`, `detail_font_pt: 8.0`) inside tight, well-proportioned boxes (typical height 34–44 pt, not bloated 65 pt cards).
-3. **Prefer clean flat rounded rectangles:** Use `process` rectangles with soft role-based pastel fills (like TikZ/Illustrator) for most pipeline stages; use 3D `data` cylinders or `decision` diamonds only when classical flowchart notation genuinely enhances clarity.
-4. **Restraint with icons & badges:** An icon-free, typography-led schematic is often the cleanest, most authoritative choice. If icons help, use at most 2–4 purposeful domain symbols (or custom domain `.svg` / AI art) — do **NOT** stamp a wireframe UI icon onto every single box. Reserve `badge` only for multi-panel labels like `(a)` / `(b)` or numbered stages, never SaaS status tags like `INPUT` / `EVAL`.
-5. **Clean geometry & compact legends:** Align boxes on a strict grid with consistent vertical/horizontal gaps (12–18 pt), use crisp orthogonal rounded connectors without unnecessary zigzags, and ensure every legend swatch matches the exact fill/stroke/line style actually drawn in the diagram.
-6. **Legend restraint & borderless framing:** Only include a legend when it explains a non-obvious visual encoding (such as dashed vs. solid arrows or shared color roles across multi-panel stages). Never waste a legend repeating single-box titles, and keep legends borderless (`"frame": false`) by default.
-
-## 5. Three-Tier Icon System
-
-In diagram specifications, icons are declared in the top-level `"icons": [...]` array with `"id"`, `"node"`, `"alt"`, and `"box"` or `"placement"`:
-
-1. **Tier 1 (Host Native AI Image Generation)**: When authorized and rich domain illustration helps, generate isolated objects on white backgrounds and run `python scripts/prepare_icon.py input.png --output assets/icon.png` for alpha cutout and transparent PNG embedding.
-2. **Tier 2 (Custom AI-Authored Local SVG)**: Unlimited pure-vector symbols authored locally (`"path": "assets/icon.svg"`). Rendered directly as vector path patches across all outputs without rasterization warnings.
-3. **Tier 3 (30 Built-in Instant Vector Icons)**: Zero external files; specify `"vector_icon": "<name>"` directly (`python scripts/render_diagram.py --list-icons`):
-   - *Data & Storage*: `database`, `table`, `document`, `documents`, `folder`, `cloud`, `globe`, `satellite`, `sensor`, `waveform`
-   - *AI & Compute*: `brain`, `neural_net`, `cpu`, `code`, `layers`, `filter`, `merge`, `split`, `sliders`, `gear`
-   - *Science & Analysis*: `microscope`, `dna`, `flask`, `chart_bar`, `chart_line`, `search`, `check`, `alert`, `shield`, `users`
-
-## 6. Rendering & Multi-Format Delivery
-
-Generate publication-ready artifacts:
-
-```bash
-python scripts/render_diagram.py diagram.json --output-dir output --stem figure-01 --drawio --eps --tiff
-python scripts/validate_svg.py output/figure-01.svg --json output/svg-check.json
-```
-
-- **Outputs**: Editable SVG, vector PDF, 600-DPI PNG, print-size PNG, native Draw.io XML (`--drawio`), EPS (`--eps`), lossless TIFF (`--tiff`).
-- **Asset Portability**: Local icons copied to `<output-dir>/<stem>-assets/` for self-contained handoff.
-
-## 7. Mandatory Multi-Pass Visual Self-Critique Loop
-
-Always inspect **BOTH** `<stem>-print-size.png` (at 100% physical print scale) **AND** `<stem>.png` (high-res rendering) after rendering. Verify all 6 strict criteria:
-
-1. **Scientific Fidelity Against Manuscript/Code**: Every node, branch condition, mathematical objective, and output faithfully reflects the underlying scientific methodology without omitted stages or invented connections.
-2. **Paper-Grounded Conventions**: Visual structure, grouping boundaries, and notation reflect real peer-reviewed domain conventions learned from inspected literature figures (never copied, but authentically grounded).
-3. **Human-Editorial Aesthetic (Anti-AI-Slop)**: Restrained flat pastel fills, crisp 0.8–1.0 pt hairline borders, no drop shadows, no SaaS status badges, no Jira-like accent stripes, and no arbitrary UI icons cluttering boxes.
-4. **Typography & Sans-Serif Math Clarity**: Clear hierarchy (bold dark title 9–10 pt + muted slate subtitle 8 pt); math formulas render cleanly in upright sans-serif mathtext (`\mathbf{h} \in \mathbb{R}^d`) without clipping or serif clashes.
-5. **Grid Alignment, Breathing Room & Orthogonal Routing**: Main pipeline stages align along a strict grid spine; vertical/horizontal gaps are consistent (12–18 pt); orthogonal connectors feature crisp TikZ arrowheads (`head_length=0.55,head_width=0.28`) without unnecessary kinks or diagonal crossings.
-6. **Matching Legend & WCAG AA Contrast**: Legend swatches exactly match the fills, borders, and line styles actually drawn in the diagram; all text exceeds 4.5:1 contrast against container and node fills.
-
-### Strict Anti-Hallucination & Visual Micro-QA Rules
-
-- **Zero Fabricated Specifics:** NEVER invent unreported model names (e.g., XLM-RoBERTa), split ratios (e.g., 80/10/10), vector dimensions (e.g., $\mathbb{R}^{300}$), or domain counts not explicitly present in the user's manuscript or code.
-- **Exact Legend Swatch Parity:** Every node swatch in `legend` MUST specify BOTH the exact `"fill"` and `"stroke_color"` of the actual boxes it represents (never use a solid dark swatch for a pale-tinted box).
-- **Edge Label & Corridor Clearance:** Never place an edge label on a connector segment shorter than `label_height + 10 pt` (otherwise the pill hides the arrow and touches node borders). Leave at least `16–20 pt` corridor clearance between adjacent shaded group containers so parallel routed arrows never hug dashed borders.
-
-> [!CAUTION]
-> **Iterative Refinement Mandate:** If **ANY** visual, alignment, typographic, or scientific imperfection is noticed during inspection, revise the JSON specification, re-render, and re-inspect in a loop until all 6 criteria are spotless.
+- For a new figure with supplied study evidence, include `design_review` and
+  run `--require-sources --require-design-review`. When an applicable
+  minimum of inspected published examples is met, add
+  `--require-paper-figures --min-paper-figures N`. If access falls short,
+  preserve the real records, report the shortfall and use the applicable checks.
+- Inspect the full render and the print-size view. Answer the reader checks
+  using the drawing, then verify each important relationship against the
+  study. Report scientific, paper-inspection, and geometry checks as separate
+  results. See the [QA guide](references/quality-assurance.md).
+- Deliver the editable source and the formats the user or venue requires.
+  The local tools produce SVG, PDF and PNG, with optional Draw.io, EPS or TIFF.
+  Check any separately requested editable export in its intended viewer if
+  available. See the [output guide](references/output-specification.md).

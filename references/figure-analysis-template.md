@@ -1,6 +1,9 @@
 # Figure Analysis Template
 
-For every new diagram, screen extracted pages to collect **at least 5 relevant published figures of the target diagram type**, and complete one copy of this analysis per inspected figure before designing the new diagram. Distill each figure's primary lesson into `spec["sources"][i]["takeaway"]` alongside `title`, `locator`, and `doi`/`url`.
+Use one record per figure actually inspected. Follow the
+[paper protocol](paper-research-protocol.md) for the applicable scope.
+After reading the caption and nearby text, record the visible convention and
+how it applies to the user's figure.
 
 ## Paper identity
 
@@ -64,3 +67,14 @@ List general domain conventions or communication patterns that can inform the ne
 ## How this informs the new original figure
 
 Explain which general conventions will be adopted, which will be changed, and why. The new diagram must represent the user's own research and must not be a trace or close replica of the source figure.
+
+## Transfer to the figure specification
+
+- In `sources`, store `kind: "figure"`, the figure locator, a DOI or stable URL,
+  and the specific takeaway. Add `inspection.location` and
+  `inspection.publication` (`published`, `preprint`, or `unverified`).
+- In `design_review.precedents`, record the source ID, observation, decision,
+  and final element IDs (e.g. `edges:scale-to-decoder`). For an omitted
+  convention, use `omission_reason`.
+- In `design_review.checks`, map the intended reader checks to study-backed
+  elements. Inspect the render to verify that each mapping is visible.

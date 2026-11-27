@@ -689,14 +689,14 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
         # 1. Zero sources -> rejected (< 5)
         with self.assertRaises(ValueError) as cm:
             self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+        self.assertIn("Paper-grounded mode needs 5 distinct paper figure records", str(cm.exception))
 
         # 2. 2 and 4 fully analyzed figure sources -> rejected (< 5)
         for n in (2, 4):
             spec['sources'] = _make_figure_sources(n)
             with self.assertRaises(ValueError) as cm:
                 self.draw(spec, require_paper_figures=True)
-            self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+            self.assertIn("Paper-grounded mode needs 5 distinct paper figure records", str(cm.exception))
 
         # 3. 5 figure sources, but one lacks takeaway/notes -> rejected
         spec['sources'] = _make_figure_sources(5)
@@ -704,7 +704,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
         spec['sources'][4].pop('notes', None)
         with self.assertRaises(ValueError) as cm:
             self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+        self.assertIn("Paper-grounded mode needs 5 distinct paper figure records", str(cm.exception))
 
         # 4. 5 figure sources, but one lacks doi/url/pdf_url -> rejected
         spec['sources'] = _make_figure_sources(5)
@@ -712,7 +712,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
         spec['sources'][0].pop('url', None)
         with self.assertRaises(ValueError) as cm:
             self.draw(spec, require_paper_figures=True)
-        self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", str(cm.exception))
+        self.assertIn("Paper-grounded mode needs 5 distinct paper figure records", str(cm.exception))
 
         # 5. Non-positive min_paper_figures rejected
         with self.assertRaises(ValueError):
@@ -748,7 +748,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
                 capture_output=True, text=True
             )
             self.assertEqual(res_bad.returncode, 2)
-            self.assertIn("Paper-grounded mode requires at least 5 deeply analyzed published figure sources", res_bad.stderr)
+            self.assertIn("Paper-grounded mode needs 5 distinct paper figure records", res_bad.stderr)
         finally:
             if p_bad.exists():
                 p_bad.unlink()
@@ -773,7 +773,7 @@ class PaperFigureGroundingEnforcementTests(unittest.TestCase):
                 capture_output=True, text=True
             )
             self.assertEqual(res_min6.returncode, 2)
-            self.assertIn("Paper-grounded mode requires at least 6 deeply analyzed published figure sources", res_min6.stderr)
+            self.assertIn("Paper-grounded mode needs 6 distinct paper figure records", res_min6.stderr)
         finally:
             if p_good.exists():
                 p_good.unlink()

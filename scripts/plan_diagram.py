@@ -9,6 +9,7 @@ from importlib.util import find_spec
 import json
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 
 try:
     from .render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
@@ -61,7 +62,7 @@ class LabelMeasure:
         return len(wrap.splitlines()), w, h
 
 
-def graph_rows(nodes, edges, allow_cycles=False):
+def graph_rows(nodes, edges, allow_cycles=False, *, order="parent-position"):
     """Assign ranks without changing direction or adding relationships."""
     children, parents = defaultdict(list), defaultdict(list)
     for edge in edges:
@@ -107,9 +108,12 @@ def graph_rows(nodes, edges, allow_cycles=False):
     rows = [[] for _ in range(max(rank.values()) + 1)]
     for n in nodes:
         rows[rank[n]].append(n)
-    for row in range(1, len(rows)):
-        positions = {n: i for i, n in enumerate(rows[row - 1])}
-        rows[row].sort(key=lambda n: sum(positions.get(p, 0) for p in dag_parents[n]) / max(1, len(dag_parents[n])))
+    if order == "parent-position":
+        for row in range(1, len(rows)):
+            positions = {n: i for i, n in enumerate(rows[row - 1])}
+            rows[row].sort(key=lambda n: sum(positions.get(p, 0) for p in dag_parents[n]) / max(1, len(dag_parents[n])))
+    elif order != "input":
+        raise ValueError('Unknown automatic row order')
     return rows, rank, parents, children
 
 
@@ -124,7 +128,7 @@ def paper_palette(node, shape):
     node.setdefault('bold', True)
 
 
-def plan(method, asset_dir=None, theme=None):
+def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", skip_side="right"):
     if not isinstance(method, dict) or not isinstance(method.get('nodes'), list) or not method['nodes']:
         raise ValueError('Supply a method object with a nonempty nodes list')
     if not isinstance(method.get('edges', []), list):
@@ -178,7 +182,7 @@ def plan(method, asset_dir=None, theme=None):
         paper_palette(node, shape)
         nodes[node['id']] = node
     edges = spec.get('edges', [])
-    rows, rank, parents, children = graph_rows(nodes, edges, allow_cycles=True)
+    rows, rank, parents, children = graph_rows(nodes, edges, allow_cycles=True, order=row_order)
     # Lanes are optional. They pin related method stages to a shared column.
     lanes = spec.pop('lanes', [])
     if (not isinstance(lanes, list) or any(not isinstance(lane, str) or not lane.strip() for lane in lanes)
@@ -478,20 +482,43 @@ def plan(method, asset_dir=None, theme=None):
                 edge_label = edge.pop('label')
                 notes.append(branch_note(edge_label, track_x, (uy + uh / 2 + vy + vh / 2) / 2, size, width, measure, math=edge.get('math'), avoid_x=track_x))
         max_r = max(nodes[n]['box'][0] + nodes[n]['box'][2] for n in nodes)
+        use_left = skip_side == 'left' and not feedback_edges
         for s_idx, edge in enumerate(skip_edges):
             edge_lbl = edge.get('label')
             note_w = measure.box(edge_lbl, size, math=edge.get('math'))[0] + 6.0 if edge_lbl else 0.0
             corridor_w = max(14.0, note_w + 10.0)
-            track_x = max_r + corridor_w + s_idx * 10.0
-            if track_x + MARGIN > width:
-                width = track_x + MARGIN
-                canvas['width_pt'] = width
+            if use_left:
+                track_x = min_l - corridor_w - s_idx * 10.0
+                if track_x < MARGIN:
+                    shift = MARGIN - track_x
+                    for node in nodes.values():
+                        node['box'][0] += shift
+                    for icon in spec.get('icons', []):
+                        if 'box' in icon:
+                            icon['box'][0] += shift
+                    for edge_routed in skip_edges[:s_idx]:
+                        for point in edge_routed['points']:
+                            point[0] += shift
+                    for note in notes:
+                        note['box'][0] += shift
+                    min_l += shift
+                    width += shift
+                    canvas['width_pt'] = width
+                    track_x = MARGIN
+            else:
+                track_x = max_r + corridor_w + s_idx * 10.0
+                if track_x + MARGIN > width:
+                    width = track_x + MARGIN
+                    canvas['width_pt'] = width
             u, v = edge['from'], edge['to']
             ux, uy, uw, uh = nodes[u]['box']
             vx, vy, vw, vh = nodes[v]['box']
-            edge['points'] = [[ux + uw, uy + uh / 2], [track_x, uy + uh / 2], [track_x, vy + vh / 2], [vx + vw, vy + vh / 2]]
+            source_x = ux if use_left else ux + uw
+            target_x = vx if use_left else vx + vw
+            edge['points'] = [[source_x, uy + uh / 2], [track_x, uy + uh / 2],
+                              [track_x, vy + vh / 2], [target_x, vy + vh / 2]]
             edge.setdefault('arrow', 'end')
-            if edge.get('label'):
+            if edge_lbl:
                 edge_label = edge.pop('label')
                 notes.append(branch_note(edge_label, track_x, (uy + uh / 2 + vy + vh / 2) / 2, size, width, measure, math=edge.get('math'), avoid_x=track_x))
         for edge in adjacent_edges:
@@ -604,6 +631,64 @@ def port_coordinate(nodes, owner, peer, neighbours, axis):
     return origin + size * (.17 + .66 * (neighbours.index(peer) + .5) / len(neighbours))
 
 
+def choose_layout(method, asset_dir=None, *, dpi=600, theme=None, profile=None, fixed_width=False):
+    """Try bounded layout variants, preserving relationships and explicit direction or lanes."""
+    if not isinstance(method, dict):
+        raise ValueError('The method file must contain a JSON object')
+    canvas = method.get('canvas', {})
+    if not isinstance(canvas, dict):
+        raise ValueError('canvas must be an object')
+    requested = method.get('direction', 'auto')
+    width = number(canvas.get('width_pt', 360), 'canvas.width_pt') if fixed_width else None
+    variants = [('default', 'parent-position', requested, 'right')]
+    if not method.get('lanes'):
+        variants.append(('input-order', 'input', requested, 'right'))
+    if requested in ('auto', 'vertical'):
+        variants.append(('left-skip-corridor', 'parent-position', 'vertical', 'left'))
+    if requested == 'auto':
+        variants.extend((direction, 'parent-position', direction, 'right') for direction in ('vertical', 'horizontal'))
+
+    attempts = []
+    first_renderable = None
+    seen = set()
+    with TemporaryDirectory(prefix='diagram-layout-') as scratch:
+        for strategy, order, direction, side in variants:
+            try:
+                candidate = plan({**method, 'direction': direction}, asset_dir, theme,
+                                 row_order=order, skip_side=side)
+            except ValueError as error:
+                attempts.append({'strategy': strategy, 'passed': False, 'errors': [str(error)]})
+                continue
+            signature = json.dumps([candidate['nodes'], candidate.get('edges', []),
+                                    candidate.get('annotations', []), candidate['canvas']], sort_keys=True)
+            if signature in seen:
+                continue
+            seen.add(signature)
+            actual_width = candidate['canvas']['width_pt']
+            if width is not None and actual_width > width + 1e-6:
+                attempts.append({'strategy': strategy, 'passed': False, 'width_pt': actual_width,
+                                 'errors': [f'Layout exceeded the fixed {width:g} pt width.']})
+                continue
+            if first_renderable is None:
+                first_renderable = candidate
+            report = render(candidate, scratch, 'layout', dpi=dpi, asset_dir=asset_dir,
+                            preview_only=True, profile=profile, theme=theme)
+            attempts.append({'strategy': strategy, 'passed': report['passed_geometry_checks'],
+                             'width_pt': actual_width, 'errors': report['errors']})
+            if report['passed_geometry_checks']:
+                candidate['layout_plan'].update(selected_strategy=strategy, attempts=attempts)
+                return candidate
+
+    if first_renderable is None:
+        detail = attempts[0]['errors'][0] if attempts else 'No layout candidate was built.'
+        raise ValueError(f'{detail} Use the explicit layout for related panels or re-route the connections.')
+    first_renderable['layout_plan'].update(
+        selected_strategy=None, attempts=attempts,
+        next_step='Inspect the diagnostic and attempt JSON. Keep all important relationships, then re-route or split into panels.'
+    )
+    return first_renderable
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('method', nargs='?', type=Path)
@@ -619,9 +704,11 @@ def main():
     parser.add_argument('--list-icons', action='store_true', help='List available vector icons')
     parser.add_argument('--require-sources', action='store_true')
     parser.add_argument('--require-paper-figures', action='store_true',
-                        help='Require deeply analyzed published paper figures in sources (default minimum: 5)')
+                        help='Require distinct paper figure records (default minimum: 5)')
     parser.add_argument('--min-paper-figures', type=int, default=5,
-                        help='Minimum number of deeply analyzed published figure sources required with --require-paper-figures (default: 5)')
+                        help='Minimum distinct paper figure records (default: 5)')
+    parser.add_argument('--require-design-review', action='store_true')
+    parser.add_argument('--fixed-width', action='store_true', help='Reject layouts wider than the requested canvas')
     parser.add_argument('--doctor', action='store_true', help='Check which local tools are installed')
     args = parser.parse_args()
     if args.list_icons:
@@ -639,14 +726,17 @@ def main():
     try:
         def build():
             source = json.loads(args.method.read_text(encoding='utf-8-sig'))
-            return plan(source, args.method.parent, theme=args.theme)
+            return choose_layout(source, args.method.parent, dpi=args.dpi, theme=args.theme,
+                                 profile=args.profile, fixed_width=args.fixed_width)
         report = render(build, args.output_dir, stem=args.stem, dpi=args.dpi,
                         asset_dir=args.method.parent, preview_only=args.preview_only, drawio=args.drawio,
                         tiff=args.tiff, profile=args.profile, require_sources=args.require_sources,
                         require_paper_figures=args.require_paper_figures,
                         min_paper_figures=args.min_paper_figures,
+                        require_design_review=args.require_design_review,
                         eps=args.eps, theme=args.theme)
-        print(json.dumps({'status': report['status'], 'exports': report['exports'], 'errors': report['errors']}, indent=2))
+        print(json.dumps({'status': report['status'], 'exports': report['exports'], 'errors': report['errors'],
+                          'layout_plan': report.get('layout_plan')}, indent=2))
         return 0 if report['passed_geometry_checks'] else 1
     except (ValueError, OSError, ImportError) as error:
         print(f'Cannot plan diagram: {error}', file=sys.stderr)

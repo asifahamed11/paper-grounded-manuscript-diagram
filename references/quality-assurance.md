@@ -43,7 +43,14 @@ When icons are used, follow [icon QA](icon-workflow.md): inspect raw assets, tra
 - [ ] Editable source is saved.
 - [ ] Final render has been visually inspected.
 
-## 4. Literature-grounding checks
+## 4. Reader and literature checks
+
+For a new design, answer the reader checks from the rendered figure at its
+intended physical width. Trace each required relation from its source through
+the visible edge or panel handoff, and check the actual study evidence.
+Compare the final composition with the adopted conventions in the review record.
+
+### Literature grounding
 
 - [ ] Paper titles and metadata are verified.
 - [ ] DOI or stable URLs are provided when available.

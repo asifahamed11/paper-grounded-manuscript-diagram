@@ -21,13 +21,16 @@ from itertools import combinations
 from pathlib import Path
 
 try:
+    from .figure_review import METHOD_KINDS, paper_records, validate_design_review
     from .themes import apply_theme, resolve_font, THEMES
     from .vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
 except ImportError:
     try:
+        from scripts.figure_review import METHOD_KINDS, paper_records, validate_design_review
         from scripts.themes import apply_theme, resolve_font, THEMES
         from scripts.vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
     except ImportError:
+        from figure_review import METHOD_KINDS, paper_records, validate_design_review
         from themes import apply_theme, resolve_font, THEMES
         from vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
 
@@ -154,54 +157,66 @@ def provenance(spec):
     sources = spec.get('sources', [])
     if not isinstance(sources, list):
         raise ValueError('sources must be a list')
-    source_ids = set()
+    by_id = {}
     for source in sources:
         if not isinstance(source, dict):
             raise ValueError('Each source must be an object')
         for field in ('id', 'title', 'locator'):
             if not _nonempty_str(source.get(field)):
                 raise ValueError(f'Each source needs a nonempty {field}')
-        if source['id'] in source_ids:
+        if source['id'] in by_id:
             raise ValueError(f"Duplicate source id: {source['id']}")
-        source_ids.add(source['id'])
+        by_id[source['id']] = source
         if source.get('kind', 'method') not in ('method', 'figure', 'dataset', 'code', 'asset'):
             raise ValueError('Unknown source kind')
-    linked, uncovered = {}, []
+    linked, uncovered, elements, supported = {}, [], set(), set()
     for kind in ('nodes', 'edges', 'annotations', 'icons'):
         for index, item in enumerate(spec.get(kind, [])):
             identifier = f'{kind}:{item.get("id", index)}'
+            elements.add(identifier)
             refs = item.get('source_refs', [])
-            if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in source_ids for ref in refs):
+            if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in by_id for ref in refs):
                 raise ValueError(f'{identifier}.source_refs must name sources in the specification')
             if refs:
                 linked[identifier] = refs
+            has_method = any(by_id[ref].get('kind', 'method') in METHOD_KINDS for ref in refs)
+            if has_method:
+                supported.add(identifier)
             elif kind == 'edges' or (kind == 'nodes' and item.get('shape') not in ('header', 'group')):
                 uncovered.append(identifier)
-    figure_sources = [
-        s for s in sources
-        if s.get('kind') == 'figure'
-        and _nonempty_str(s.get('title'))
-        and _nonempty_str(s.get('locator'))
-        and any(_nonempty_str(s.get(k)) for k in ('doi', 'url', 'pdf_url'))
-        and any(_nonempty_str(s.get(k)) for k in ('takeaway', 'notes'))
-    ]
+    papers, incomplete = paper_records(sources)
+    review = (validate_design_review(spec['design_review'], elements, supported, by_id, papers)
+              if 'design_review' in spec else None)
     return {'sources': sources, 'linked_elements': linked, 'unlinked_method_elements': uncovered,
-            'paper_figures_inspected': len(figure_sources),
-            'paper_figure_ids': [s['id'] for s in figure_sources],
-            'review': 'Source references supplied by the author or agent; check claim support separately.'}
+            'paper_figures_inspected': len(papers),
+            'paper_figure_ids': [group[0] for group in papers],
+            'duplicate_paper_sources': [group for group in papers if len(group) > 1],
+            'incomplete_figure_sources': incomplete, 'design_review': review,
+            'review': 'Counts use supplied records and offline identity checks. Verify publication, inspection and claim support separately.'}
 
 
-def _enforce_paper_figures(prov, require_paper_figures, min_paper_figures=5):
-    """Validate min_paper_figures threshold and enforce deeply analyzed published figure grounding."""
+def enforce_review(prov, require_sources=False, require_paper_figures=False,
+                   min_paper_figures=5, require_design_review=False):
     if isinstance(min_paper_figures, bool) or not isinstance(min_paper_figures, int) or min_paper_figures < 1:
         raise ValueError('min_paper_figures must be a positive integer')
-    if require_paper_figures and prov.get('paper_figures_inspected', 0) < min_paper_figures:
-        raise ValueError(
-            f"Paper-grounded mode requires at least {min_paper_figures} deeply analyzed published figure sources "
-            "(kind: 'figure' with title, locator, doi/url, and takeaway/notes). "
-            "Fetch diagram-type-matched OA papers via scripts/fetch_papers.py --diagram-type <type> "
-            "and inspect real figures with scripts/extract_pdf_figures.py first."
-        )
+    if require_sources and prov['unlinked_method_elements']:
+        raise ValueError('Missing source references from method, code, or dataset on: '
+                         + ', '.join(prov['unlinked_method_elements']))
+    design_review = prov['design_review']
+    if require_design_review and design_review is None:
+        raise ValueError('Add a design_review with evidence-backed reader checks')
+    if require_design_review and design_review['unmapped_figure_sources']:
+        raise ValueError('Add a design decision for each reviewed figure: '
+                         + ', '.join(design_review['unmapped_figure_sources']))
+    if require_paper_figures:
+        count = (design_review['reported_published_papers'] if require_design_review
+                 else prov['paper_figures_inspected'])
+        if count < min_paper_figures:
+            raise ValueError(
+                f'Paper-grounded mode needs {min_paper_figures} distinct paper figure records; found {count}. '
+                'Supply a valid DOI or stable URL, figure locator, and takeaway. '
+                'When design review is required, only mapped records reported as inspected and published count.'
+            )
 
 
 def validate_spec(spec):
@@ -820,7 +835,8 @@ def publish_run(staged, output_dir, stem, report):
 
 def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
            preview_only=False, drawio=False, tiff=False, require_sources=False,
-           require_paper_figures=False, min_paper_figures=5, profile=None, eps=False, theme=None):
+           require_paper_figures=False, min_paper_figures=5, require_design_review=False,
+           profile=None, eps=False, theme=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stem):
         raise ValueError("stem must be a filename without paths or extensions")
     destination = Path(output_dir).resolve()
@@ -839,7 +855,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
                     raise ValueError('dpi must be between 150 and 1200')
                 if profile not in (None, *PROFILES):
                     raise ValueError('Unknown figure export profile')
-                if preview_only and (drawio or tiff or profile or eps):
+                if preview_only and (drawio or tiff or eps):
                     raise ValueError('Preview mode only writes inspection images and QA')
                 if callable(spec):
                     spec = spec()
@@ -848,9 +864,8 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
                 spec = apply_theme(spec)
                 validate_spec(spec)
                 sources = provenance(spec)
-                if require_sources and sources['unlinked_method_elements']:
-                    raise ValueError('Missing source references for ' + ', '.join(sources['unlinked_method_elements']))
-                _enforce_paper_figures(sources, require_paper_figures, min_paper_figures=min_paper_figures)
+                enforce_review(sources, require_sources, require_paper_figures, min_paper_figures,
+                               require_design_review)
                 report = render_figure(spec, staging, stem, dpi, asset_dir,
                                        preview_only=preview_only, drawio=drawio, tiff=tiff or profile == 'plos-one',
                                        profile=profile, eps=eps)
@@ -1715,9 +1730,11 @@ def main():
     p.add_argument('--list-icons', action='store_true', help='List all available vector icons')
     p.add_argument('--require-sources', action='store_true', help='Require supplied source locators on each method node and edge')
     p.add_argument('--require-paper-figures', action='store_true',
-                   help='Require deeply analyzed published paper figures in sources (default minimum: 5)')
+                   help='Require distinct paper figure records (default minimum: 5)')
     p.add_argument('--min-paper-figures', type=int, default=5,
-                   help='Minimum number of deeply analyzed published figure sources required with --require-paper-figures (default: 5)')
+                   help='Minimum distinct paper figure records (default: 5)')
+    p.add_argument('--require-design-review', action='store_true',
+                   help='Require evidence-backed reader checks and a decision for each reviewed figure')
     args=p.parse_args()
     if args.list_icons:
         for name in list_icons():
@@ -1735,15 +1752,14 @@ def main():
             spec = apply_theme(spec)
             validate_spec(spec)
             prov = provenance(spec)
-            if args.require_sources and prov['unlinked_method_elements']:
-                raise ValueError('Source references are missing from method nodes or edges.')
-            _enforce_paper_figures(prov, args.require_paper_figures, min_paper_figures=args.min_paper_figures)
+            enforce_review(prov, args.require_sources, args.require_paper_figures, args.min_paper_figures,
+                           args.require_design_review)
             if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
             print('Specification valid. Rendering and visual review have not run.');return 0
         report=render(load,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent, preview_only=args.preview_only,
                       drawio=args.drawio, tiff=args.tiff, profile=args.profile, require_sources=args.require_sources,
                       require_paper_figures=args.require_paper_figures, min_paper_figures=args.min_paper_figures,
-                      eps=args.eps, theme=args.theme)
+                      require_design_review=args.require_design_review, eps=args.eps, theme=args.theme)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
                           'layout_advisories':report['layout']['advisories'],
                           'status':report['status'],'visual_review':report['visual_review'],'exports':report['exports']},indent=2))

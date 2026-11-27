@@ -12,16 +12,26 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
+from itertools import zip_longest
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
+try:
+    from .score_papers import metadata_topic_match
+except ImportError:
+    try:
+        from scripts.score_papers import metadata_topic_match
+    except ImportError:
+        from score_papers import metadata_topic_match
+
+
 FIELDNAMES = [
     'title', 'authors', 'year', 'venue', 'doi', 'url',
     'citations', 'citation_source', 'citation_checked_on',
-    'relevance', 'figure_relevance', 'oa_status', 'pdf_url',
+    'relevance', 'figure_relevance', 'metadata_match', 'oa_status', 'pdf_url', 'oa_url',
     'downloaded_full_text', 'figure_inspected', 'figure_locator', 'notes',
     'target_diagram_type'
 ]
@@ -39,7 +49,7 @@ DIAGRAM_TYPE_TERMS: dict[str, str] = {
     'graphical-abstract': '"graphical abstract" OR "overview schematic"',
 }
 
-USER_AGENT = 'paper-grounded-manuscript-diagram (mailto:scholar@example.org)'
+USER_AGENT = 'paper-grounded-manuscript-diagram'
 
 
 def _validate_diagram_type(diagram_type: str | None) -> str | None:
@@ -117,7 +127,8 @@ def fetch_openalex(query: str, limit: int = 10) -> list[dict]:
         oa_info = work.get('open_access') or {}
         oa_status = oa_info.get('oa_status') or ''
         best_oa = work.get('best_oa_location') or {}
-        pdf_url = best_oa.get('pdf_url') or oa_info.get('oa_url') or ''
+        pdf_url = best_oa.get('pdf_url') or ''
+        oa_url = best_oa.get('landing_page_url') or oa_info.get('oa_url') or ''
 
         results.append({
             'title': title,
@@ -133,6 +144,7 @@ def fetch_openalex(query: str, limit: int = 10) -> list[dict]:
             'figure_relevance': '',
             'oa_status': oa_status,
             'pdf_url': pdf_url,
+            'oa_url': oa_url,
             'downloaded_full_text': 'no',
             'figure_inspected': 'no',
             'figure_locator': '',
@@ -214,66 +226,73 @@ def fetch_arxiv(query: str, limit: int = 10) -> list[dict]:
 
 
 def deduplicate_papers(papers: list[dict]) -> list[dict]:
-    """Deduplicate records by DOI or normalized title."""
-    seen_dois = set()
-    seen_titles = set()
+    """Deduplicate DOI/title aliases and keep access links supplied by another provider."""
+    known = {}
     unique = []
     for paper in papers:
-        doi = paper.get('doi', '').strip().lower()
-        title_key = normalize_title(paper.get('title', ''))
-        if doi and doi in seen_dois:
-            continue
-        if title_key and title_key in seen_titles:
-            continue
-        if doi:
-            seen_dois.add(doi)
-        if title_key:
-            seen_titles.add(title_key)
-        unique.append(paper)
+        keys = [key for key in (
+            ('doi', normalize_doi(paper.get('doi') or '')),
+            ('title', normalize_title(paper.get('title') or ''))
+        ) if key[1]]
+        matches = [known[key] for key in keys if key in known]
+        if matches:
+            first = matches[0]
+            for field in ('doi', 'pdf_url', 'oa_url'):
+                if not first.get(field) and paper.get(field):
+                    first[field] = paper[field]
+        else:
+            first = dict(paper)
+            unique.append(first)
+        for key in keys:
+            known[key] = first
     return unique
+
+
+def _priority(paper):
+    return (paper['metadata_match'], bool(paper.get('pdf_url')))
 
 
 def search_papers(query: str, limit: int = 20, sources: list[str] | None = None,
                   oa_only: bool = False, diagram_type: str | None = None) -> list[dict]:
-    """Search scholarly repositories and return structured paper matrix records."""
+    """Make a provider-balanced, metadata-only candidate shortlist."""
+    if limit < 1:
+        raise ValueError('limit must be positive')
     dt = _validate_diagram_type(diagram_type)
     if sources is None:
         sources = ['openalex', 'arxiv']
-    combined = []
+    providers = {'openalex': fetch_openalex, 'arxiv': fetch_arxiv}
+    streams = []
     errors = []
     fetch_limit = min(50, max(limit * 3, 25)) if oa_only else limit
 
-    for src in sources:
-        src = src.strip().lower()
+    for src in dict.fromkeys(s.strip().lower() for s in sources):
+        if src not in providers:
+            sys.stderr.write(f"Warning: Unknown source '{src}', skipping.\\n")
+            continue
         try:
-            if src == 'openalex':
-                oa_query = build_targeted_query(query, dt, source='openalex')
-                combined.extend(fetch_openalex(oa_query, limit=fetch_limit))
-            elif src == 'arxiv':
-                arxiv_query = build_targeted_query(query, dt, source='arxiv')
-                combined.extend(fetch_arxiv(arxiv_query, limit=fetch_limit))
-            else:
-                sys.stderr.write(f"Warning: Unknown source '{src}', skipping.\n")
-        except Exception as exc:
-            errors.append(f"{src}: {exc}")
+            candidates = providers[src](build_targeted_query(query, dt, source=src), limit=fetch_limit)
+        except (RuntimeError, OSError) as exc:
+            errors.append(f'{src}: {exc}')
+            continue
+        ranked = []
+        for paper in candidates:
+            is_open = paper.get('oa_status') not in (None, '', 'closed', 'none')
+            if oa_only and not (is_open or paper.get('pdf_url')):
+                continue
+            ranked.append({**paper, 'target_diagram_type': dt or '',
+                           'metadata_match': metadata_topic_match(query, paper.get('title') or '')})
+        if ranked:
+            streams.append(sorted(ranked, key=_priority, reverse=True))
 
-    if not combined and errors:
-        raise RuntimeError("All sources failed:\n" + "\n".join(errors))
+    if not streams and errors:
+        raise RuntimeError('No candidates available. Provider failures:\\n' + '\\n'.join(errors))
+    for error in errors:
+        sys.stderr.write(f'Warning: Partial paper search: {error}\\n')
 
-    unique = deduplicate_papers(combined)
-    if oa_only:
-        unique = [
-            p for p in unique
-            if (p.get('oa_status') and p['oa_status'] not in ('closed', 'none')) or (p.get('pdf_url') or '').strip()
-        ]
-        unique.sort(key=lambda p: 0 if (p.get('pdf_url') or '').strip() else 1)
-
-    selected = unique[:limit]
-    for record in selected:
-        record.setdefault('target_diagram_type', '')
-        if dt:
-            record['target_diagram_type'] = dt
-    return selected
+    streams.sort(key=lambda stream: _priority(stream[0]), reverse=True)
+    combined = [paper for batch in zip_longest(*streams) for paper in batch if paper is not None]
+    selected = deduplicate_papers(combined)[:limit]
+    return sorted(selected, key=_priority, reverse=True)
 
 
 def main():
@@ -284,7 +303,7 @@ def main():
                         help='Comma-separated sources: openalex, arxiv (default: openalex,arxiv)')
     parser.add_argument('--diagram-type', choices=sorted(DIAGRAM_TYPE_TERMS.keys()), default=None,
                         help='Bias search toward papers containing a matching published diagram type')
-    parser.add_argument('--oa-only', action='store_true', help='Only return open-access papers with accessible PDFs')
+    parser.add_argument('--oa-only', action='store_true', help='Only shortlist records with reported open access or a PDF link; verify access separately')
     parser.add_argument('--output', type=Path, default=None,
                         help='Destination CSV file path (prints to stdout if omitted)')
     args = parser.parse_args()

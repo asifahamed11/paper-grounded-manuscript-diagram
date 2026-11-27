@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -17,6 +18,7 @@ def main() -> int:
     parser.add_argument("image_dir", type=Path)
     parser.add_argument("--output", type=Path, default=Path("contact-sheet.png"))
     parser.add_argument("--columns", type=int, default=3)
+    parser.add_argument("--pages-only", action="store_true", help="Use full-page renders produced by extract_pdf_figures.py")
     parser.add_argument("--thumb-width", type=int, default=420)
     parser.add_argument("--thumb-height", type=int, default=560)
     parser.add_argument("--label-height", type=int, default=42)
@@ -34,6 +36,8 @@ def main() -> int:
         return 2
 
     paths = sorted(p for p in args.image_dir.iterdir() if p.suffix.lower() in SUPPORTED and p.resolve()!=args.output.resolve())
+    if args.pages_only:
+        paths = [path for path in paths if re.search(r"_page_\d+\.png$", path.name, re.IGNORECASE)]
     if not paths:
         print(f"No supported images found in {args.image_dir}", file=sys.stderr)
         return 1

@@ -12,7 +12,7 @@ Classify the user's requested diagram type first (`workflow`, `architecture`, `s
 python scripts/fetch_papers.py "<topic>" --diagram-type <type> --oa-only --limit 20 --output papers.csv
 ```
 
-If initial screening yields fewer than 5 papers actually containing that diagram type, broaden or re-query using additional patterns:
+If the shortlist misses the important visual relationship, broaden or re-query using these patterns.
 
 - exact research topic + requested figure type;
 - core method/model + workflow or architecture;
@@ -57,29 +57,21 @@ Citation influence is log-normalized within the candidate set to reduce dominati
 
 ## 3. Access and inspection scope
 
-For every new diagram, grounding visual layout, grouping conventions, and notation in peer-reviewed domain literature is the **mandatory default**. Screen candidate open-access PDFs targeted via `--diagram-type <type>`, **discard off-type papers**, and extract and deeply analyze **at least 5 relevant published diagrams** matching the requested diagram type (recording all $\ge 5$ verified `kind: "figure"` entries in `spec["sources"]` with `title`, exact `locator`, verifiable `doi`/`url`/`pdf_url`, and nonempty `takeaway` or `notes`). A minor styling or typo fix to an existing verified diagram does not require a fresh literature search. If the user explicitly requests no literature search, honor that exemption and disclose it.
+For a new complex diagram or a requested deep design review, aim for at least
+five distinct published papers with useful, inspected figures. Follow any
+explicit count or source set. Reuse previously inspected figures for focused
+tasks when they answer the reader's design question. Record access shortfalls,
+and keep preprints separate from the published-paper count.
 
-A paper counts as **downloaded and inspected** only if:
-- a full-text PDF or equivalent full text was actually obtained;
-- the document was opened/read;
-- relevant figures and captions were inspected.
+Use the full-page render, its candidate caption index, and the adjacent text.
+The index is a navigation aid. Figures drawn as vectors can appear on a page
+with zero embedded raster images. Read the selected figure at a readable scale,
+then record the exact figure number and viewing location.
 
-The following do not count as downloaded full text:
-- title/abstract pages;
-- search-result snippets;
-- citation records;
-- a figure thumbnail without the paper context;
-- a DOI landing page.
-
-If the desired reference set cannot be legally accessed:
-1. try alternate legitimate sources (publisher open-access page, author manuscript, institutional repository, PMC, arXiv, ACL Anthology, or another recognized repository);
-2. record which papers were inaccessible and why;
-3. report the actual number downloaded and inspected;
-4. do not bypass paywalls or access controls;
-5. continue a useful diagram from the user's verified method with the evidence limitations stated; ask for a missing source only when it materially affects scientific content or an explicit requirement;
-6. never claim a requested paper count or inspection stage was met if it was not. Never fabricate paper records or fake DOIs.
-
-Do not send private manuscript text, unpublished diagrams or research data to external search/generation services. Public subject/DOI queries and lawful public-paper downloads are sufficient for style research. Link every adopted convention to an actual inspected page/figure and a concrete new-design choice; a bibliography alone is not a design analysis.
+```sh
+python scripts/extract_pdf_figures.py paper.pdf --output-dir reviewed-paper --pages-only
+python scripts/build_contact_sheet.py reviewed-paper --pages-only --output pages.png
+```
 
 ## 4. Legal access and rights
 

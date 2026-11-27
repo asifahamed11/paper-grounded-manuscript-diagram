@@ -1,0 +1,625 @@
+{
+  "title": "Multiscale paired encoder and decoder",
+  "description": "Synthetic layout example. Panel A gives the model overview. Panel B shows every scale and decoder skip.",
+  "canvas": {
+    "width_pt": 457.2,
+    "height_pt": 350,
+    "font_family": "DejaVu Sans",
+    "font_pt": 9.2,
+    "min_font_pt": 8.5
+  },
+  "style": {
+    "theme": "okabe-ito",
+    "detail_font_pt": 8.5,
+    "title_detail_gap_pt": 2.2
+  },
+  "sources": [
+    {
+      "id": "fixture-method",
+      "kind": "method",
+      "title": "Synthetic four-level method",
+      "locator": "references/figure-planning.md, Synthetic method for the multiscale template"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "overview",
+      "shape": "group",
+      "box": [
+        8,
+        8,
+        441,
+        87
+      ],
+      "label": "(a) Pairing overview",
+      "label_height_pt": 22,
+      "container_fill": "#f8fafc"
+    },
+    {
+      "id": "details",
+      "shape": "group",
+      "box": [
+        8,
+        104,
+        441,
+        238
+      ],
+      "label": "(b) Scale-wise comparison and decoding",
+      "label_height_pt": 22,
+      "container_fill": "#f8fafc"
+    },
+    {
+      "id": "inputs",
+      "label": "Input pair",
+      "box": [
+        18,
+        39,
+        92,
+        39
+      ],
+      "shape": "input",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Epoch A and B"
+    },
+    {
+      "id": "encoder",
+      "label": "Shared encoder",
+      "box": [
+        126,
+        39,
+        100,
+        39
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "One set of weights",
+      "fill": "#e8f2fb"
+    },
+    {
+      "id": "levels",
+      "label": "Pair by level",
+      "box": [
+        242,
+        39,
+        92,
+        39
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Levels 1 to 4"
+    },
+    {
+      "id": "comparison",
+      "label": "Decode (b)",
+      "box": [
+        350,
+        39,
+        90,
+        39
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "pair-4",
+      "label": "Level 4 pair",
+      "box": [
+        19,
+        136,
+        120,
+        32
+      ],
+      "shape": "input",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "A4 and B4"
+    },
+    {
+      "id": "difference-4",
+      "label": "Absolute difference",
+      "box": [
+        159,
+        136,
+        122,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Level 4",
+      "fill": "#fff4de"
+    },
+    {
+      "id": "decoder-4",
+      "label": "Start decoder",
+      "box": [
+        302,
+        136,
+        132,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Deepest difference",
+      "fill": "#e9f5ef"
+    },
+    {
+      "id": "pair-3",
+      "label": "Level 3 pair",
+      "box": [
+        19,
+        178,
+        120,
+        32
+      ],
+      "shape": "input",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "A3 and B3"
+    },
+    {
+      "id": "difference-3",
+      "label": "Absolute difference",
+      "box": [
+        159,
+        178,
+        122,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Level 3",
+      "fill": "#fff4de"
+    },
+    {
+      "id": "decoder-3",
+      "label": "Fuse level 3",
+      "box": [
+        302,
+        178,
+        132,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Upsample and merge",
+      "fill": "#e9f5ef"
+    },
+    {
+      "id": "pair-2",
+      "label": "Level 2 pair",
+      "box": [
+        19,
+        220,
+        120,
+        32
+      ],
+      "shape": "input",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "A2 and B2"
+    },
+    {
+      "id": "difference-2",
+      "label": "Absolute difference",
+      "box": [
+        159,
+        220,
+        122,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Level 2",
+      "fill": "#fff4de"
+    },
+    {
+      "id": "decoder-2",
+      "label": "Fuse level 2",
+      "box": [
+        302,
+        220,
+        132,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Upsample and merge",
+      "fill": "#e9f5ef"
+    },
+    {
+      "id": "pair-1",
+      "label": "Level 1 pair",
+      "box": [
+        19,
+        262,
+        120,
+        32
+      ],
+      "shape": "input",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "A1 and B1"
+    },
+    {
+      "id": "difference-1",
+      "label": "Absolute difference",
+      "box": [
+        159,
+        262,
+        122,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Level 1",
+      "fill": "#fff4de"
+    },
+    {
+      "id": "decoder-1",
+      "label": "Fuse level 1",
+      "box": [
+        302,
+        262,
+        132,
+        32
+      ],
+      "shape": "process",
+      "source_refs": [
+        "fixture-method"
+      ],
+      "detail": "Upsample and merge",
+      "fill": "#e9f5ef"
+    },
+    {
+      "id": "logits",
+      "label": "Change logits",
+      "box": [
+        302,
+        306,
+        132,
+        26
+      ],
+      "shape": "terminator",
+      "source_refs": [
+        "fixture-method"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "inputs-to-encoder",
+      "from": "inputs",
+      "to": "encoder",
+      "points": [
+        [
+          110,
+          58.5
+        ],
+        [
+          126,
+          58.5
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "encoder-to-levels",
+      "from": "encoder",
+      "to": "levels",
+      "points": [
+        [
+          226,
+          58.5
+        ],
+        [
+          242,
+          58.5
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "levels-to-comparison",
+      "from": "levels",
+      "to": "comparison",
+      "points": [
+        [
+          334,
+          58.5
+        ],
+        [
+          350,
+          58.5
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "pair-4-to-difference-4",
+      "from": "pair-4",
+      "to": "difference-4",
+      "points": [
+        [
+          139,
+          152
+        ],
+        [
+          159,
+          152
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "difference-4-to-decoder-4",
+      "from": "difference-4",
+      "to": "decoder-4",
+      "points": [
+        [
+          281,
+          152
+        ],
+        [
+          302,
+          152
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "pair-3-to-difference-3",
+      "from": "pair-3",
+      "to": "difference-3",
+      "points": [
+        [
+          139,
+          194
+        ],
+        [
+          159,
+          194
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "difference-3-to-decoder-3",
+      "from": "difference-3",
+      "to": "decoder-3",
+      "points": [
+        [
+          281,
+          194
+        ],
+        [
+          302,
+          194
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "decoder-4-to-decoder-3",
+      "from": "decoder-4",
+      "to": "decoder-3",
+      "points": [
+        [
+          368,
+          168
+        ],
+        [
+          368,
+          178
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "pair-2-to-difference-2",
+      "from": "pair-2",
+      "to": "difference-2",
+      "points": [
+        [
+          139,
+          236
+        ],
+        [
+          159,
+          236
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "difference-2-to-decoder-2",
+      "from": "difference-2",
+      "to": "decoder-2",
+      "points": [
+        [
+          281,
+          236
+        ],
+        [
+          302,
+          236
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "decoder-3-to-decoder-2",
+      "from": "decoder-3",
+      "to": "decoder-2",
+      "points": [
+        [
+          368,
+          210
+        ],
+        [
+          368,
+          220
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "pair-1-to-difference-1",
+      "from": "pair-1",
+      "to": "difference-1",
+      "points": [
+        [
+          139,
+          278
+        ],
+        [
+          159,
+          278
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "difference-1-to-decoder-1",
+      "from": "difference-1",
+      "to": "decoder-1",
+      "points": [
+        [
+          281,
+          278
+        ],
+        [
+          302,
+          278
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "decoder-2-to-decoder-1",
+      "from": "decoder-2",
+      "to": "decoder-1",
+      "points": [
+        [
+          368,
+          252
+        ],
+        [
+          368,
+          262
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    },
+    {
+      "id": "decoder-1-to-logits",
+      "from": "decoder-1",
+      "to": "logits",
+      "points": [
+        [
+          368,
+          294
+        ],
+        [
+          368,
+          306
+        ]
+      ],
+      "source_refs": [
+        "fixture-method"
+      ]
+    }
+  ],
+  "design_review": {
+    "reader_question": "How do the two encoded inputs supply four differences to the decoder?",
+    "checks": [
+      {
+        "question": "Which component shares weights across inputs?",
+        "elements": [
+          "nodes:encoder"
+        ]
+      },
+      {
+        "question": "Where are both epoch features compared at each level?",
+        "relationship": true,
+        "elements": [
+          "edges:pair-4-to-difference-4",
+          "edges:pair-3-to-difference-3",
+          "edges:pair-2-to-difference-2",
+          "edges:pair-1-to-difference-1"
+        ]
+      },
+      {
+        "question": "Which difference feeds each decoding stage?",
+        "relationship": true,
+        "elements": [
+          "edges:difference-4-to-decoder-4",
+          "edges:difference-3-to-decoder-3",
+          "edges:difference-2-to-decoder-2",
+          "edges:difference-1-to-decoder-1"
+        ]
+      },
+      {
+        "question": "What produces the output?",
+        "relationship": true,
+        "elements": [
+          "edges:decoder-1-to-logits"
+        ]
+      }
+    ],
+    "precedents": []
+  }
+}

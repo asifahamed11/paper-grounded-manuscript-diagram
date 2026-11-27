@@ -1,6 +1,6 @@
 interface:
   display_name: "Paper Grounded Manuscript Diagram"
   short_description: "Draw editable research diagrams with measured layout QA"
-  default_prompt: "Use $paper-grounded-manuscript-diagram to discover diagram-type-matched peer-reviewed papers, deeply analyze at least 5 relevant published figures, create an editable diagram with measured layout QA, and iterate to print-size visual perfection."
+  default_prompt: "Use $paper-grounded-manuscript-diagram to plan an evidence-backed figure, adapt applicable published visual precedents, and inspect the editable diagram at its intended width."
 policy:
   allow_implicit_invocation: true

@@ -61,22 +61,26 @@ An AI agent received the exact same [prompt brief](assets/readme/comparison-prom
 
 ---
 
-<h2 id="how-it-works">Zero Prompt Engineering: 1-Line Autopilot</h2>
+<h2 id="how-it-works">From a method to an editable figure</h2>
 
-Drop your manuscript, codebase, or method outline into your workspace and run a single prompt:
+Open your manuscript, code, or outline in your workspace and ask your agent:
 
 ```text
-Use $paper-grounded-manuscript-diagram to create a publication-ready methodology diagram from my manuscript and code.
+Use $paper-grounded-manuscript-diagram to explain my model architecture.
+Show how the inputs, feature scales, and output connect at the target print width.
 ```
 
-Behind that single instruction, six deterministic stages run automatically in pure local Python:
+The agent sets the reader question, diagram type, detail level, and physical
+width. The [planning guide](references/figure-planning.md) helps it choose an
+overview, a detailed view, or linked panels. It can find public paper
+candidates with `fetch_papers.py` and review actual full pages and captions
+before adapting a design convention. Use
+[`design_review`](references/method-to-figure.md#trace-content-and-design-choices)
+to record where each studied relationship and adopted convention appears.
 
-1. **Classifies your diagram type** (`architecture`, `workflow`, `system`, `flowchart`, `prisma`, `conceptual`, `taxonomy`, `timeline`, `multi-panel`, or `graphical-abstract`).
-2. **Targeted OA paper discovery** queries OpenAlex and arXiv via `fetch_papers.py --diagram-type <type> --oa-only` — never pulling off-topic random papers.
-3. **Screens &amp; deeply analyzes &ge; 5 real published diagrams** extracted from open-access PDFs using `extract_pdf_figures.py` and `build_contact_sheet.py`.
-4. **Synthesizes domain conventions** onto a flat, grid-aligned composition using colorblind-safe palettes (`okabe-ito`, `paul-tol-muted`, `paul-tol-pale`, `print-mono`).
-5. **Enforces code-level geometry, contrast &amp; provenance QA** (`--require-sources --require-paper-figures`), verifying every font bound, port, crossing, WCAG ratio, and source locator.
-6. **Multi-pass print-size self-critique** inspects rendered PNGs at `100%` physical journal scale and iterates until every detail is spotless.
+The Python tools rank metadata, prepare review pages, plan routes, render, and
+check export geometry. An author or agent inspects the publications and the
+figure at print size and checks the scientific claims against the study.
 
 ---
 
@@ -171,7 +175,7 @@ apply a colorblind-safe palette, and inspect the 1:1 print-size PNG.
 
 ### 2. Try Locally in Python (3 Commands)
 
-Requires Python 3.10+ and free rendering dependencies (`matplotlib`, `Pillow`, `PyMuPDF`):
+Rendering uses Python 3.10+, Matplotlib and Pillow. PDF review uses optional PyMuPDF.
 
 ```sh
 python -m pip install -r requirements-render.txt
@@ -179,14 +183,27 @@ python scripts/plan_diagram.py --doctor
 python scripts/plan_diagram.py templates/review-selection-method.json --output-dir demo --drawio --require-sources
 ```
 
-Inspect `demo/method-print-size.png`, `demo/method.svg`, and `demo/method.drawio`, alongside the auditable provenance receipt `demo/method-qa.json`.
+Inspect `demo/method-print-size.png`, `demo/method.svg`, and `demo/method.drawio`
+with the provenance receipt `demo/method-qa.json`. For a reproducible
+[architecture overview and detail](templates/multiscale-architecture.json),
+render the synthetic four-scale example:
+
+```sh
+python scripts/render_diagram.py templates/multiscale-architecture.json --output-dir demo --stem multiscale --require-sources --require-design-review
+```
 
 ---
 
 ## Privacy, Scientific Integrity & Documentation
 
 - **Local-First Privacy:** Unpublished manuscripts, codebases, and extracted PDF figures stay strictly on your local machine — never uploaded to third-party diagram SaaS platforms or external image models.
-- **No Fabricated Evidence:** Citations come strictly from legal open-access repositories (`fetch_papers.py --oa-only`), every node/edge traces to real source locations (`--require-sources`), and `--require-paper-figures` rejects diagrams lacking deep multi-figure literature analysis (`paper_figures_inspected >= 5`).
+- **Evidence checks** `--require-sources` requires method, code or dataset
+  references for substantive nodes and edges. `--require-design-review` checks
+  the mappings from reader questions and figure precedents to elements.
+  Combined with `--require-paper-figures`, it counts distinct papers with
+  recorded inspection and publication status. DOI/URL normalization and these
+  structural checks run offline. Confirm actual access, publication, and
+  scientific support during review.
 
 <p align="center">
   <a href="SKILL.md">Skill Instructions</a> &middot;

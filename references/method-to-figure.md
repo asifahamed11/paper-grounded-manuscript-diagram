@@ -27,7 +27,11 @@ Open `demo/method-print-size.png`, `demo/method.drawio` and `demo/method-qa.json
 | Optional `math` | Set `"math": true` (on canvas, node or edge) or use inline `\( ... \)` to render mathematical formulas without external LaTeX dependencies. |
 | Optional `sources`, `source_refs` | Put the document or code identity and locator beside the stages and links they support. |
 
-The planner measures wrapping and sizes nodes for the requested font. It lays out adjacent tiers of an acyclic workflow, skip-rank DAG corridors, and cyclic feedback loops with outer return routes. Ranks can hold branches, aligned lanes, or horizontal left-to-right pipelines with vector icons and labels. Branch labels are dynamically spaced to prevent overlap with connector lines and nodes. Use `--drawio`, `--tiff`, `--eps`, or `--profile` (e.g. `ieee-single`, `springer-lncs`, `plos-one`) to generate matching manuscript exports. A geometry error includes the attempted specification for revision. Move nodes or change routes there while preserving the method and caption.
+The planner measures wrapping and sizes nodes for the requested font. It lays out adjacent tiers of an acyclic workflow, skip-rank DAG corridors, and cyclic feedback loops with outer return routes. Ranks can hold branches, aligned lanes, or horizontal left-to-right pipelines with vector icons and labels. Branch labels are dynamically spaced to prevent overlap with connector lines and nodes. Use `--drawio`, `--tiff`, `--eps`, or `--profile` (e.g. `ieee-single`, `springer-lncs`, `plos-one`) to generate matching manuscript exports. A geometry error includes the attempted specification for revision. The CLI tries bounded alternatives such as input order or a different skip
+corridor. Use `--fixed-width` to enforce the requested physical width.
+Check the attempted JSON and diagnostics when none of the candidates pass.
+Preserve the relationships while rerouting or splitting the figure into
+linked panels.
 
 If a draft already has `box` for each node and `points` for each edge, use `render_diagram.py` directly to retain the layout.
 
@@ -35,9 +39,46 @@ If a draft already has `box` for each node and `points` for each edge, use `rend
 
 Each `sources` record needs an `id`, `title` and `locator`. Optional `kind` distinguishes `method`, `figure`, `dataset`, `code` and `asset`. Use `source_refs` on a node or edge to name the records that support it. Record a paper's DOI or public URL when applicable. For style references add the actual figure locator and the specific convention adopted.
 
-`--require-sources` checks that named references exist and cover substantive nodes and edges. The QA report lists all links and missing references. Verify that the specified location supports the claim, numbers, role and arrow direction. A bibliography entry alone cannot establish that support. Keep unpublished evidence in the local project.
+`--require-sources` requires method, code, or dataset references on
+substantive nodes and edges. A figure precedent can supply a design cue.
+Check the study locators for the operation, numbers, and direction of flow.
 
-`--require-paper-figures` enforces that deeply analyzed published figure sources (`kind: "figure"` with nonempty `title`, exact `locator`, verifiable `doi`/`url`/`pdf_url`, and nonempty `takeaway` or `notes`) are present in `spec["sources"]` (default minimum: **5**, configurable via `--min-paper-figures`). Use it alongside `--require-sources` for every new manuscript diagram to ensure thorough visual and methodological peer-reviewed literature grounding.
+For a new design use `--require-design-review` and a record like this:
+
+```json
+{
+  "design_review": {
+    "reader_question": "How does a feature reach the decoder`",
+    "checks": [
+      {
+        "question": "Can a reader follow the skip connection`",
+        "relationship": true,
+        "elements": ["edges:scale-to-decoder"]
+      }
+    ],
+    "precedents": [
+      {
+        "source": "paper-a",
+        "observation": "Skip routes have a distinct connection to the output path.",
+        "decision": "Draw the feature-to-decoder edge explicitly.",
+        "elements": ["edges:scale-to-decoder"]
+      }
+    ]
+  }
+}
+```
+
+Element IDs use the collection name followed by the element ID, as in
+`nodes:encoder` or `edges:scale-to-decoder`. For a relationship check, draw and
+name an edge. For a reviewed precedent that was omitted, use
+`omission_reason` in place of `elements`. If no paper figures were reviewed,
+submit an empty precedent list.
+
+`--require-paper-figures` counts distinct paper identities based on supplied
+DOIs or stable URLs and figure notes. Its default minimum is five. With
+`--require-design-review`, figures count toward the minimum when their mapped
+source includes an inspection location and reported `published` status.
+Use the review checklist to verify identities, access, and visible decisions.
 
 ## Prefer a clean starting composition
 

@@ -58,6 +58,8 @@ jobs:
           python scripts/validate_svg.py diagram-output/ml-arch.svg
           python scripts/render_diagram.py templates/multi-panel-method.json --output-dir diagram-output --stem multi-panel --drawio
           python scripts/validate_svg.py diagram-output/multi-panel.svg
+          python scripts/render_diagram.py templates/multiscale-architecture.json --output-dir diagram-output --stem multiscale --require-sources --require-design-review --profile ieee-double
+          python scripts/validate_svg.py diagram-output/multiscale.svg
       - name: Build a figure directly from sourced method stages
         run: |
           python scripts/plan_diagram.py --doctor

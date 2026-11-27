@@ -7,6 +7,7 @@ import argparse
 import csv
 import json
 import math
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -23,7 +24,20 @@ def to_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def calculate_scores(records: list[dict[str, Any]], current_year: int | None = None) -> list[dict[str, Any]]:
+def metadata_topic_match(query: str, title: str) -> float:
+    """Title-term coverage for candidate triage, before any figure inspection."""
+    stop = {'a', 'an', 'and', 'by', 'for', 'from', 'in', 'of', 'on', 'or', 'the', 'to', 'using', 'with'}
+    def terms(value):
+        return {word for word in re.findall(r'[^\W_]+', value.casefold()) if word not in stop}
+    query_terms = terms(query)
+    return round(100 * len(query_terms & terms(title)) / len(query_terms), 2) if query_terms else 0.0
+
+
+def _provided(value):
+    return value is not None and str(value).strip() != ""
+
+
+def calculate_scores(records: list[dict[str, Any]], current_year: int | None = None, *, topic: str | None = None) -> list[dict[str, Any]]:
     if not records:
         return []
 
@@ -33,7 +47,12 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
 
     scored = []
     for record in records:
-        relevance = min(100.0, max(0.0, to_float(record.get("relevance"))))
+        supplied_topic = record.get("relevance")
+        metadata = record.get("metadata_match")
+        if not _provided(metadata) and topic:
+            metadata = metadata_topic_match(topic, str(record.get("title", "")))
+        topic_value = supplied_topic if _provided(supplied_topic) else metadata
+        relevance = min(100.0, max(0.0, to_float(topic_value)))
         figure_relevance = min(100.0, max(0.0, to_float(record.get("figure_relevance"))))
         citations = max(0.0, to_float(record.get("citations")))
         year = int(to_float(record.get("year"), 0))
@@ -51,7 +70,14 @@ def calculate_scores(records: list[dict[str, Any]], current_year: int | None = N
         )
 
         item = dict(record)
-        item["score_warnings"] = "future or unknown year" if not known_year else ""
+        warnings = [] if known_year else ["future or unknown year"]
+        basis = ("reviewer_rating" if _provided(supplied_topic)
+                 else "title_terms" if _provided(metadata) else "unrated")
+        if basis == "unrated":
+            warnings.append("no topic rating or title-match score")
+        item["topic_score_basis"] = basis
+        item["metadata_match"] = metadata if _provided(metadata) else ""
+        item["score_warnings"] = "; ".join(warnings)
         item["citation_score"] = round(citation_score, 2)
         item["recency_score"] = round(recency_score, 2)
         item["weighted_score"] = round(total, 2)
@@ -109,6 +135,7 @@ def main() -> int:
     parser.add_argument("input", type=Path, help="Input .csv or .json candidate list")
     parser.add_argument("--output", type=Path, default=Path("ranked-papers.csv"), help="Output CSV path")
     parser.add_argument("--year", type=int, default=date.today().year, help="Reference year for recency scoring")
+    parser.add_argument("--topic", help="Public topic terms for older matrices without metadata_match")
     parser.add_argument("--reviewed-only", action="store_true",
                         help="Select flagged inspected figures with a locator, prioritising figure relevance")
     args = parser.parse_args()
@@ -118,7 +145,7 @@ def main() -> int:
 
     try:
         records = load_records(args.input)
-        ranked = calculate_scores(records, current_year=args.year)
+        ranked = calculate_scores(records, current_year=args.year, topic=args.topic)
         if args.reviewed_only:
             ranked = reviewed_figures(ranked)
             if not ranked:

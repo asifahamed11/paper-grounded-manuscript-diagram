@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Added figure-type planning, traceable reader checks, and a sourced multiscale example.
+- Deduplicate paper identities and separate study evidence from visual precedents.
+- Use a topic-aware shortlist across providers and index figure-like PDF captions.
+- Try bounded routing alternatives and support fixed-width planning and profile previews.
+
 ## 2.0.0
 
 - Added 5 curated publication themes (`nature-clean`, `ieee-crisp`, `neurips-soft`, `biomed-prisma`, `print-mono`) with non-destructive override semantics.
