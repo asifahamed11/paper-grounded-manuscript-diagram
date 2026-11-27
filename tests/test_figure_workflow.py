@@ -21,7 +21,11 @@ HAS_PIL = find_spec('PIL') is not None
 
 
 def source():
-    return json.loads((ROOT / 'templates' / 'multiscale-architecture.json').read_text('utf-8'))
+    spec = json.loads((ROOT / 'templates' / 'multiscale-architecture.json').read_text('utf-8'))
+    spec['sources'] = [item for item in spec['sources'] if item['kind'] != 'figure']
+    spec['design_review']['precedents'] = []
+    spec['design_review'].pop('shape_choices')
+    return spec
 
 
 def figure(identifier, doi, *, url='', publication='published'):

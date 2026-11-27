@@ -6,6 +6,14 @@ import base64
 from html import escape
 import xml.etree.ElementTree as ET
 
+try:
+    from .node_shapes import SHAPES as SCIENTIFIC_SHAPES, drawio_stencil, shape_swatch_size
+except ImportError:
+    try:
+        from scripts.node_shapes import SHAPES as SCIENTIFIC_SHAPES, drawio_stencil, shape_swatch_size
+    except ImportError:
+        from node_shapes import SHAPES as SCIENTIFIC_SHAPES, drawio_stencil, shape_swatch_size
+
 
 PT_TO_PX = 4 / 3
 SHAPES = {
@@ -99,7 +107,7 @@ def write_drawio(spec, report, destination, icon_paths, color):
         has_shadow = (shape != 'group') and bool(node.get('shadow', design.get('shadow', False)))
         shadow_style = 'shadow=1;' if has_shadow else ''
         arc_style = f'absoluteArcSize=1;arcSize={arc_size_px};' if shape in ('process', 'header', 'group') else ''
-        base_shape = SHAPES[shape]
+        base_shape = drawio_stencil(shape) if shape in SCIENTIFIC_SHAPES else SHAPES[shape]
         if shape == 'group' and dash_override:
             base_shape = base_shape.replace('dashed=1;', dash_override)
         style = (base_shape + arc_style + shadow_style + f'fillColor={bg};strokeColor={stroke};strokeWidth={line_width};'
@@ -120,16 +128,15 @@ def write_drawio(spec, report, destination, icon_paths, color):
             parent_id = '1'
             node_bounds = node['box']
 
-        # Copy the actual text positions into editable child cells when an icon
-        # reserves part of the node, so native editing starts without collisions.
-        attached = any(icon.get('node_id') == identifier for icon in report['icons'])
-        vertex(root, native_ids[identifier], '' if attached else label, style, node_bounds, parent=parent_id)
-        if attached:
+        # Preserve the measured label positions for shapes with a reserved
+        # text area or attached icon. Each label remains an editable text cell.
+        separate_text = (shape in SCIENTIFIC_SHAPES
+                         or any(icon.get('node_id') == identifier for icon in report['icons']))
+        vertex(root, native_ids[identifier], '' if separate_text else label, style, node_bounds, parent=parent_id)
+        if separate_text:
             x, y, _, _ = node['box']
             text_ids = ([identifier+':title', identifier+':detail']
                         if identifier+':title' in fonts else [identifier])
-            text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align={node.get("align", "center")};'
-                          f'verticalAlign=middle;spacing=0;fontFamily={family};fontColor={fg};')
             for j, text_id in enumerate(text_ids):
                 a, b, c, d = fonts[text_id]['bounds_pt']
                 col = fg
@@ -139,7 +146,8 @@ def write_drawio(spec, report, destination, icon_paths, color):
                         col = color(d_col)
                 child_text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align={node.get("align", "center")};'
                                     f'verticalAlign=middle;spacing=0;fontFamily={family};fontColor={col};')
-                vertex(root, native_ids[identifier]+f'-text-{j}', label_html(text_id, bold=text_id.endswith(':title')),
+                bold = text_id.endswith(':title') or (text_id == identifier and node.get('bold', False))
+                vertex(root, native_ids[identifier]+f'-text-{j}', label_html(text_id, bold=bold),
                        child_text_style, (a-x-1, b-y, c-a+2, d-b), parent=native_ids[identifier])
 
     for i, edge in enumerate(spec.get('edges', [])):
@@ -220,20 +228,18 @@ def write_drawio(spec, report, destination, icon_paths, color):
             vertex(root, 'legend-frame', '', 'rounded=1;fillColor=none;strokeColor=none;', (lx, ly, lw, lh))
         leg_items = leg.get('items', [])
         if leg_items:
-            slot_w = (lw - 12) / len(leg_items)
-            line_swatch_w = 22.0
-            node_swatch_w = 11.0
-            node_swatch_h = 6.5
             text_gap = 5.0
-            leg_font_pt = 7.5 if canvas.get('min_font_pt', 8.5) <= 8.5 else max(7.5, canvas.get('min_font_pt', 8.5) - 1.0)
-            leg_font_px = pixels(leg_font_pt)
             for idx, it in enumerate(leg_items):
-                ix = lx + 6 + idx * slot_w
-                iy = ly + lh / 2
+                record = fonts[f'legend:item-{idx}']
+                tx, ty, end_x, end_y = record['bounds_pt']
                 scol = color(it.get('color', it.get('fill', '#334E68')))
                 s_stroke = color(it.get('stroke_color', scol))
-                is_line = it.get('kind') == 'edge' or it.get('shape') == 'line'
-                swatch_w = line_swatch_w if is_line else node_swatch_w
+                shape = it.get('shape')
+                is_line = it.get('kind') == 'edge' or shape == 'line'
+                has_stencil = not is_line and isinstance(shape, str) and shape in SCIENTIFIC_SHAPES
+                swatch_w, swatch_h = shape_swatch_size(shape) if has_stencil else (22.0 if is_line else 11.0, 6.5)
+                ix = tx - swatch_w - text_gap
+                iy = ly + lh / 2
                 if is_line:
                     arrow = it.get('arrow', 'end')
                     end_arr = 'classic' if arrow in ('end', 'both') else 'none'
@@ -245,10 +251,14 @@ def write_drawio(spec, report, destination, icon_paths, color):
                     ET.SubElement(geom, 'mxPoint', x=pixels(ix), y=pixels(iy), **{'as': 'sourcePoint'})
                     ET.SubElement(geom, 'mxPoint', x=pixels(ix + swatch_w), y=pixels(iy), **{'as': 'targetPoint'})
                 else:
-                    vertex(root, f'legend-swatch-{idx}', '', f'rounded=1;fillColor={scol};strokeColor={s_stroke};strokeWidth=1;', (ix, iy - node_swatch_h / 2, swatch_w, node_swatch_h))
-                escaped_text = escape(it['label']).replace('\n', '<br>')
-                val = f'<div style="font-family:{font_stack};font-size:{leg_font_px}px;color:{color(leg.get("text_color", "#334155"))}">{escaped_text}</div>'
-                vertex(root, f'legend-text-{idx}', val, f'text;strokeColor=none;fillColor=none;html=1;fontFamily={family};fontSize={leg_font_px};fontColor={color(leg.get("text_color", "#334155"))};', (ix + swatch_w + text_gap, iy - node_swatch_h / 2, slot_w - swatch_w - 4, node_swatch_h))
+                    swatch_shape = drawio_stencil(shape) if has_stencil else 'rounded=1;'
+                    swatch_style = f'{swatch_shape}fillColor={scol};strokeColor={s_stroke};strokeWidth=0.8;'
+                    vertex(root, f'legend-swatch-{idx}', '', swatch_style, (ix, iy - swatch_h / 2, swatch_w, swatch_h))
+                leg_color = color(leg.get('text_color', '#334155'))
+                text_style = (f'text;strokeColor=none;fillColor=none;html=1;whiteSpace=nowrap;align=left;'
+                              f'verticalAlign=middle;spacing=0;fontFamily={family};fontColor={leg_color};')
+                vertex(root, f'legend-text-{idx}', label_html(record['id']), text_style,
+                       (tx, ty, end_x - tx + 2, end_y - ty))
 
     ET.indent(file, space='  ')
     ET.ElementTree(file).write(destination, encoding='utf-8', xml_declaration=True)

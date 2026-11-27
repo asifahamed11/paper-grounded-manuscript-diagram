@@ -14,15 +14,18 @@ from tempfile import TemporaryDirectory
 try:
     from .render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
     from .themes import apply_theme, resolve_font, THEMES
+    from .node_shapes import AUTOMATIC_SHAPES, list_shapes, palette_role, text_fractions
     from .vector_icons import list_icons, load_local_svg
 except ImportError:
     try:
         from scripts.render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
         from scripts.themes import apply_theme, resolve_font, THEMES
+        from scripts.node_shapes import AUTOMATIC_SHAPES, list_shapes, palette_role, text_fractions
         from scripts.vector_icons import list_icons, load_local_svg
     except ImportError:
         from render_diagram import box, color, contrast, number, render, validate_spec, wrap_label, _resolve_math, PROFILES
         from themes import apply_theme, resolve_font, THEMES
+        from node_shapes import AUTOMATIC_SHAPES, list_shapes, palette_role, text_fractions
         from vector_icons import list_icons, load_local_svg
 
 
@@ -118,9 +121,10 @@ def graph_rows(nodes, edges, allow_cycles=False, *, order="parent-position"):
 
 
 def paper_palette(node, shape):
-    node.setdefault('fill', TINTS.get(shape, 'white'))
-    if shape in ROLE_COLOURS:
-        node.setdefault('stroke_color', ROLE_COLOURS[shape])
+    role = palette_role(shape)
+    node.setdefault('fill', TINTS.get(role, 'white'))
+    if role in ROLE_COLOURS:
+        node.setdefault('stroke_color', ROLE_COLOURS[role])
     background = color(node['fill'])
     foreground = next(candidate for candidate in (INK, 'black', 'white')
                       if contrast(color(candidate), background) >= 4.5)
@@ -175,8 +179,8 @@ def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", ski
         if node['id'] in nodes:
             raise ValueError(f'Duplicate node id: {node["id"]}')
         shape = node.get('shape', 'process')
-        if shape not in ('process', 'data', 'input', 'decision', 'terminator'):
-            raise ValueError('Use process, data, input, decision or terminator in the automatic layout')
+        if shape not in AUTOMATIC_SHAPES:
+            raise ValueError('Use a shape supported by the automatic layout. Run --list-shapes for options.')
         if 'detail' in node and (not isinstance(node['detail'], str) or not node['detail'].strip()):
             raise ValueError(f'Node {node["id"]} detail must be text')
         paper_palette(node, shape)
@@ -214,8 +218,10 @@ def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", ski
     if can_use_horizontal:
         for node in nodes.values():
             pad = number(node.get('padding_pt', 5), 'node padding')
-            label_space = horiz_col_width - 2 * max(10, pad)
-            if node.get('shape') == 'decision':
+            shape = node.get('shape', 'process')
+            width_fraction = text_fractions(shape)[2]
+            label_space = horiz_col_width * width_fraction - 2 * max(10, pad)
+            if shape == 'decision':
                 label_space = horiz_col_width / 2 - 2 * pad
             line_counts = []
             for field, font_size in [('label', node.get('font_pt',size)), ('detail', node.get('detail_font_pt',size))]:
@@ -310,19 +316,21 @@ def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", ski
             node_size = number(node.get('font_pt', size), 'node font size')
             detail_size = number(node.get('detail_font_pt', size), 'detail font size')
             max_width = slot_width if lanes or len(row) > 1 else min(width - 2 * MARGIN, slot_width * 1.4)
-            shape_factor = 2 if shape == 'decision' else 1
+            _, _, width_fraction, height_fraction = text_fractions(shape)
+            if shape == 'decision':
+                width_fraction = height_fraction = .5
+            min_width = 32 if shape == 'operator' else MIN_COLUMN
             natural = max(measure.box(node['label'], node_size, node.get('bold', True), math=node.get('math'))[0],
                           measure.box(node.get('detail',''), detail_size, math=node.get('math'))[0])
-            box_width = min(max_width, max(MIN_COLUMN, (natural + 2 * side + 14) * shape_factor))
             if horizontal:
                 max_width = column_width
-                box_width = column_width
-            if lanes and shape != 'decision':
+            box_width = min(max_width, max(min_width, (natural + 2 * side + 14) / width_fraction))
+            if (horizontal and shape != 'operator') or (lanes and shape not in ('decision', 'operator')):
                 box_width = max_width
             icon_data = icons_by_node.get(identifier)
             if icon_data:
                 box_width = min(max_width, max(box_width, natural + 2 * side + 9 + icon_data[1]))
-            inner = box_width / shape_factor - side * 2
+            inner = box_width * width_fraction - side * 2
             if inner <= 0:
                 raise ValueError(f'Node {identifier} is too narrow for its shape and padding')
             choices = ('none',) if not icon_data else ('title', 'left', 'top')
@@ -353,13 +361,18 @@ def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", ski
                     body_h += ih + 8
                 if position in ('left','right'):
                     body_h = max(body_h, ih)
-                height = max(25, (body_h + top + pad + 4) * shape_factor)
+                height = max(25, (body_h + top + pad + 4) / height_fraction)
+                if shape == 'operator':
+                    height = max(height, box_width)
+                    if height > max_width:
+                        continue
                 scored.append({'placement': position, 'height_pt': round(height, 2),
                                'title_lines': title_lines, 'detail_lines': detail_lines})
             if not scored:
                 raise ValueError(f'Node {identifier} has text that does not fit at the requested width')
             winner = min(scored, key=lambda c: (c['detail_lines'] + c['title_lines'], c['height_pt']))
-            node['box'] = [0, 0, box_width, winner['height_pt']]
+            final_width = winner['height_pt'] if shape == 'operator' else box_width
+            node['box'] = [0, 0, final_width, winner['height_pt']]
             if icon_data:
                 planned_icons.append({'node': identifier, 'choice': winner['placement'], 'candidates': scored})
     feedback_edges = [edge for edge in edges if rank[edge['to']] <= rank[edge['from']]]
@@ -378,7 +391,8 @@ def plan(method, asset_dir=None, theme=None, *, row_order="parent-position", ski
             y = MARGIN + (main_height - col_height) / 2
             for identifier in row:
                 bounds = nodes[identifier]['box']
-                bounds[:2] = [MARGIN + index * (column_width + horiz_gutter), y]
+                x_offset = (column_width - bounds[2]) / 2
+                bounds[:2] = [MARGIN + index * (column_width + horiz_gutter) + x_offset, y]
                 y += bounds[3] + GUTTER
             next_top = main_height + MARGIN
             continue
@@ -702,18 +716,26 @@ def main():
     parser.add_argument('--profile', choices=tuple(PROFILES.keys()), help='Export profile constraints')
     parser.add_argument('--theme', choices=tuple(THEMES.keys()), help='Publication theme')
     parser.add_argument('--list-icons', action='store_true', help='List available vector icons')
+    parser.add_argument('--list-shapes', action='store_true', help='List shapes for automatic layouts')
     parser.add_argument('--require-sources', action='store_true')
     parser.add_argument('--require-paper-figures', action='store_true',
                         help='Require distinct paper figure records (default minimum: 5)')
     parser.add_argument('--min-paper-figures', type=int, default=5,
                         help='Minimum distinct paper figure records (default: 5)')
     parser.add_argument('--require-design-review', action='store_true')
+    parser.add_argument('--require-shape-review', action='store_true',
+                        help='Require shape inventories and mapped choices for the method nodes')
     parser.add_argument('--fixed-width', action='store_true', help='Reject layouts wider than the requested canvas')
     parser.add_argument('--doctor', action='store_true', help='Check which local tools are installed')
     args = parser.parse_args()
     if args.list_icons:
         for name in list_icons():
             print(name)
+        return 0
+    if args.list_shapes:
+        descriptions = list_shapes()
+        for key in AUTOMATIC_SHAPES:
+            print(f'{key}: {descriptions[key]}')
         return 0
     if args.doctor:
         packages = {name: find_spec(module) is not None for name, module in
@@ -734,6 +756,7 @@ def main():
                         require_paper_figures=args.require_paper_figures,
                         min_paper_figures=args.min_paper_figures,
                         require_design_review=args.require_design_review,
+                        require_shape_review=args.require_shape_review,
                         eps=args.eps, theme=args.theme)
         print(json.dumps({'status': report['status'], 'exports': report['exports'], 'errors': report['errors'],
                           'layout_plan': report.get('layout_plan')}, indent=2))

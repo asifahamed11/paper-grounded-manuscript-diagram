@@ -36,7 +36,12 @@ Specify ports on the named bounding-box edges. The renderer intersects that corr
  "label":"Observed records\nDates and source definitions", "fill":"sky_blue"}
 ```
 
-Shapes: `process` (default), `data`, `input`, `decision`, `terminator`, `header`, `group`. Groups are transparent dashed containers; their label occupies the top 34 points (customisable using `label_height_pt`). Other nodes may sit inside that container without triggering overlap errors. This exemption does not excuse crossing group labels or unrelated child nodes.
+Use `--list-shapes` and the [shape selection guide](scientific-shapes.md) for
+the 14 native shapes. `process` is the default. The renderer reserves a text
+area for new silhouettes and attaches routes to the visible outline. Groups
+are transparent dashed containers. Their label occupies the top 34 points by
+default, adjustable with `label_height_pt`. Other nodes may sit inside that
+container. Keep clearance around group labels and unrelated child nodes.
 
 Optional node fields: `fill`, `text_color` (palette name or `#RRGGBB`), `font_pt`, `bold`, `padding_pt`. Supported colours: black, white, blue, sky_blue, orange, green, purple, yellow, vermillion. Palette names are convenient, not scientific meaning. Contrast is checked at 4.5:1 as a conservative local default; this is not a journal compliance certificate.
 

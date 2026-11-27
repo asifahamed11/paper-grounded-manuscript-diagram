@@ -19,7 +19,7 @@ Open `demo/method-print-size.png`, `demo/method.drawio` and `demo/method-qa.json
 |---|---|
 | `title`, optional `description` | Identify the figure and describe its reading order or links. |
 | `canvas.width_pt` | Intended figure width in points. At 72 points per inch, 252 points equals 3.5 inches. The planner calculates height. |
-| `nodes` | Stable `id`, visible `label`, optional `detail`, and meaningful `shape`. |
+| `nodes` | Stable `id`, visible `label`, optional `detail`, and a [role-based shape](scientific-shapes.md). Run `--list-shapes` for the planner's vocabulary. |
 | `edges` | Links with `from` and `to` ids. Add `label` for an explicit branch choice. Preserve `arrow`, `style` and `meaning` from the method. Optional `color` helps a reader follow a distinct route. |
 | Optional `lanes` | Name lanes in left-to-right order and set each node's `lane`. This keeps a method track aligned over several ranks. |
 | Optional `direction` | Use `vertical`, `horizontal` or `auto`. Auto uses a horizontal layout only when short ranks and measured labels fit. |
@@ -48,10 +48,10 @@ For a new design use `--require-design-review` and a record like this:
 ```json
 {
   "design_review": {
-    "reader_question": "How does a feature reach the decoder`",
+    "reader_question": "How does a feature reach the decoder?",
     "checks": [
       {
-        "question": "Can a reader follow the skip connection`",
+        "question": "Can a reader follow the skip connection?",
         "relationship": true,
         "elements": ["edges:scale-to-decoder"]
       }
@@ -59,9 +59,25 @@ For a new design use `--require-design-review` and a record like this:
     "precedents": [
       {
         "source": "paper-a",
-        "observation": "Skip routes have a distinct connection to the output path.",
-        "decision": "Draw the feature-to-decoder edge explicitly.",
-        "elements": ["edges:scale-to-decoder"]
+        "observation": "Offset feature planes lead into a distinct skip route.",
+        "decision": "Show the level tensor and draw its edge to the decoder.",
+        "elements": ["nodes:features", "edges:scale-to-decoder"],
+        "shapes": [
+          {
+            "id": "offset-planes",
+            "form": "Stack of offset rectangles",
+            "role": "Encoder-level features",
+            "location": "Fig. 2(b), encoder output"
+          }
+        ]
+      }
+    ],
+    "shape_choices": [
+      {
+        "shape": "tensor",
+        "nodes": ["features"],
+        "from_shapes": [{"source": "paper-a", "shape": "offset-planes"}],
+        "reason": "The method returns a named feature tensor at this level."
       }
     ]
   }
@@ -72,11 +88,14 @@ Element IDs use the collection name followed by the element ID, as in
 `nodes:encoder` or `edges:scale-to-decoder`. For a relationship check, draw and
 name an edge. For a reviewed precedent that was omitted, use
 `omission_reason` in place of `elements`. If no paper figures were reviewed,
-submit an empty precedent list.
+submit an empty precedent list. A shape choice names one or more nodes with
+the chosen shape and study role. List any borrowed conventions by source ID
+and observed shape ID. Use `--require-shape-review` to validate coverage in a
+new figure. [Shape inventory and placement](scientific-shapes.md)
 
 `--require-paper-figures` counts distinct paper identities based on supplied
 DOIs or stable URLs and figure notes. Its default minimum is five. With
-`--require-design-review`, figures count toward the minimum when their mapped
+either review flag, figures count toward the minimum when their mapped
 source includes an inspection location and reported `published` status.
 Use the review checklist to verify identities, access, and visible decisions.
 

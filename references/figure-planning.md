@@ -25,7 +25,9 @@ The planner builds a ranked directed graph. Use an explicit layout when an
 undirected or spatial structure would acquire an unintended reading order in
 ranks. For a hybrid figure, select the appropriate visual grammar per panel.
 An overview can refer to a detail panel by a repeated named component, scale or
-tensor. Make that correspondence visible and check its sources.
+tensor. Make that correspondence visible and check its sources. Analyze the
+[shape inventory](scientific-shapes.md) of the inspected figures before
+assigning forms to supported roles. Keep that selection in the editable source.
 
 ## Compare and refine a dense layout
 
@@ -58,5 +60,7 @@ feature levels. At each level the diagram receives the pair and computes an
 element-wise absolute difference. In the detail panel the deepest difference
 seeds decoding. Each following decoder level receives the preceding stage and
 the corresponding shallower difference. The final stage produces change logits.
-These invented-for-testing stages establish the geometry example and contain
-no measured performance, dataset or parameter claims.
+These stages define the synthetic method. Each tensor and comparison in the
+detail panel names a method role. Five actual figures inform the choice of
+visual conventions, with observations and placement reasons in the
+[example source](../templates/multiscale-architecture.json).

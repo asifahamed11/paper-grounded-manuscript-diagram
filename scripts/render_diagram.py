@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 import copy
-from collections import deque
+from collections import Counter, deque
 import hashlib
 import json
 import math
@@ -22,15 +22,18 @@ from pathlib import Path
 
 try:
     from .figure_review import METHOD_KINDS, paper_records, validate_design_review
+    from .node_shapes import NODE_SHAPES, SHAPES, list_shapes, shape_swatch_size, text_box, text_fractions, transform_box
     from .themes import apply_theme, resolve_font, THEMES
     from .vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
 except ImportError:
     try:
         from scripts.figure_review import METHOD_KINDS, paper_records, validate_design_review
+        from scripts.node_shapes import NODE_SHAPES, SHAPES, list_shapes, shape_swatch_size, text_box, text_fractions, transform_box
         from scripts.themes import apply_theme, resolve_font, THEMES
         from scripts.vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
     except ImportError:
         from figure_review import METHOD_KINDS, paper_records, validate_design_review
+        from node_shapes import NODE_SHAPES, SHAPES, list_shapes, shape_swatch_size, text_box, text_fractions, transform_box
         from themes import apply_theme, resolve_font, THEMES
         from vector_icons import draw_matplotlib as draw_vector_icon, list_icons, as_data_uri as vector_as_data_uri, load_local_svg, draw_svg_file
 
@@ -185,8 +188,10 @@ def provenance(spec):
             elif kind == 'edges' or (kind == 'nodes' and item.get('shape') not in ('header', 'group')):
                 uncovered.append(identifier)
     papers, incomplete = paper_records(sources)
-    review = (validate_design_review(spec['design_review'], elements, supported, by_id, papers)
-              if 'design_review' in spec else None)
+    review = None
+    if 'design_review' in spec:
+        shapes = {node['id']: node.get('shape', 'process') for node in spec['nodes']}
+        review = validate_design_review(spec['design_review'], elements, supported, by_id, papers, shapes)
     return {'sources': sources, 'linked_elements': linked, 'unlinked_method_elements': uncovered,
             'paper_figures_inspected': len(papers),
             'paper_figure_ids': [group[0] for group in papers],
@@ -196,18 +201,29 @@ def provenance(spec):
 
 
 def enforce_review(prov, require_sources=False, require_paper_figures=False,
-                   min_paper_figures=5, require_design_review=False):
+                   min_paper_figures=5, require_design_review=False, require_shape_review=False):
     if isinstance(min_paper_figures, bool) or not isinstance(min_paper_figures, int) or min_paper_figures < 1:
         raise ValueError('min_paper_figures must be a positive integer')
     if require_sources and prov['unlinked_method_elements']:
         raise ValueError('Missing source references from method, code, or dataset on: '
                          + ', '.join(prov['unlinked_method_elements']))
     design_review = prov['design_review']
+    require_design_review = require_design_review or require_shape_review
     if require_design_review and design_review is None:
         raise ValueError('Add a design_review with evidence-backed reader checks')
     if require_design_review and design_review['unmapped_figure_sources']:
         raise ValueError('Add a design decision for each reviewed figure: '
                          + ', '.join(design_review['unmapped_figure_sources']))
+    if require_shape_review:
+        shape_review = design_review['shape_review']
+        if shape_review is None:
+            raise ValueError('Add shape inventories and design_review.shape_choices')
+        if shape_review['missing_figure_inventories']:
+            raise ValueError('Add a shape inventory for each reviewed figure: '
+                             + ', '.join(shape_review['missing_figure_inventories']))
+        if shape_review['nodes_without_shape_choice']:
+            raise ValueError('Add a shape choice for each method node: '
+                             + ', '.join(shape_review['nodes_without_shape_choice']))
     if require_paper_figures:
         count = (design_review['reported_published_papers'] if require_design_review
                  else prov['paper_figures_inspected'])
@@ -282,7 +298,7 @@ def validate_spec(spec):
         x, y, w, h = box(node.get("box"), node["id"])
         if x < 0 or y < 0 or x+w > width or y+h > height:
             raise ValueError(f"Node {node['id']} lies outside the canvas")
-        if node.get("shape", "process") not in ("process", "data", "input", "decision", "terminator", "header", "group"):
+        if node.get("shape", "process") not in NODE_SHAPES:
             raise ValueError(f"Unknown shape for {node['id']}")
         if not isinstance(node.get("label"), str) or not node["label"].strip():
             raise ValueError(f"Node {node['id']} needs a label")
@@ -675,14 +691,17 @@ def layout_metrics(spec, text_records=None, icon_records=None):
         advisory.append('Outside margin is large relative to this canvas; review content-first sizing within venue dimensions.')
     content=[]
     if text_records is not None:
+        oversized=[]
         for node,rect in zip(nodes,body):
             parts=[t['bounds_pt'] for t in text_records if t.get('node_id')==node['id']]
             parts += [i['bounds_pt'] for i in (icon_records or []) if i.get('node_id')==node['id']]
             env=envelope(parts);ratio=area(env)/area(rect) if env else 0.
-            content.append({'node':node['id'],'shape':node.get('shape','process'),'content_envelope_fraction':round(ratio,4)})
-        # A decision's wings are semantic geometry; a short question in a
-        # readable inscribed rectangle does not make its diamond oversized.
-        oversized=[r['node'] for r in content if r['shape']!='decision' and r['content_envelope_fraction']<.12]
+            shape=node.get('shape','process')
+            content.append({'node':node['id'],'shape':shape,'content_envelope_fraction':round(ratio,4)})
+            # The silhouette can reserve space for geometric signs or inset text.
+            _, _, text_w, text_h = text_fractions(shape)
+            if shape != 'decision' and ratio < .12 * text_w * text_h:
+                oversized.append(node['id'])
         if oversized:advisory.append('Review oversized boxes around short labels: '+', '.join(oversized)+'. Preserve comparable widths and semantic-shape padding when useful.')
     return {'definition':'Box occupancy and spacing diagnostics, not ink coverage, aesthetic score or a universal target',
             'main_box_canvas_fraction':round(union/(width*height),4),
@@ -836,7 +855,7 @@ def publish_run(staged, output_dir, stem, report):
 def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
            preview_only=False, drawio=False, tiff=False, require_sources=False,
            require_paper_figures=False, min_paper_figures=5, require_design_review=False,
-           profile=None, eps=False, theme=None):
+           require_shape_review=False, profile=None, eps=False, theme=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", stem):
         raise ValueError("stem must be a filename without paths or extensions")
     destination = Path(output_dir).resolve()
@@ -865,7 +884,7 @@ def render(spec, output_dir, stem="figure-01", dpi=600, asset_dir=None, *,
                 validate_spec(spec)
                 sources = provenance(spec)
                 enforce_review(sources, require_sources, require_paper_figures, min_paper_figures,
-                               require_design_review)
+                               require_design_review, require_shape_review)
                 report = render_figure(spec, staging, stem, dpi, asset_dir,
                                        preview_only=preview_only, drawio=drawio, tiff=tiff or profile == 'plos-one',
                                        profile=profile, eps=eps)
@@ -892,7 +911,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
     import matplotlib.pyplot as plt
     from matplotlib import font_manager
     from matplotlib.ft2font import FT2Font
-    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Ellipse, PathPatch
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Ellipse, PathPatch, Rectangle
     from matplotlib.path import Path as PlotPath
     import xml.etree.ElementTree as ET
     canvas=spec['canvas']; width=canvas['width_pt'];height=canvas['height_pt']
@@ -918,7 +937,8 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                      'arrow_scale':design.get('arrow_scale', 6.0),
                      'shadow':design.get('shadow', False)},
             'edge_geometry_check':'16 samples per quadratic corner; visual review remains required',
-            'provenance':provenance(spec)}
+            'provenance':provenance(spec),
+            'node_shape_counts':dict(Counter(node.get('shape', 'process') for node in spec['nodes']))}
     if 'layout_plan' in spec:
         report['layout_plan'] = spec['layout_plan']
     if requested_font != 'auto' and font != requested_font:report['warnings'].append(f'Font unavailable; substituted {font}')
@@ -934,6 +954,29 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
         def plot_path(commands):
             codes={'M':PlotPath.MOVETO,'L':PlotPath.LINETO,'Q':PlotPath.CURVE3,'Z':PlotPath.CLOSEPOLY}
             return PlotPath([p for cmd,p in commands],[codes[cmd] for cmd,p in commands])
+        def scientific_patches(shape, bounds, fill, stroke, linewidth, zorder):
+            x, y, w, h = bounds
+            patches = []
+            for kind, geometry in SHAPES[shape]['body']:
+                kwargs = dict(facecolor=fill, edgecolor=stroke, lw=linewidth, zorder=zorder)
+                if kind == 'polygon':
+                    points = [(x+a*w, y+b*h) for a,b in geometry]
+                    commands = [('M', points[0]), *[('L', point) for point in points[1:]], ('Z', points[0])]
+                    patch = PathPatch(plot_path(commands), **kwargs)
+                else:
+                    ox, oy, sw, sh = transform_box(bounds, geometry)
+                    if kind == 'ellipse':
+                        patch = Ellipse((ox+sw/2, oy+sh/2), sw, sh, **kwargs)
+                    else:
+                        patch = Rectangle((ox, oy), sw, sh, **kwargs)
+                ax.add_patch(patch)
+                patches.append(patch)
+            if stroke != 'none':
+                for line in SHAPES[shape]['lines']:
+                    ax.plot([x+a*w for a,_ in line], [y+b*h for _,b in line],
+                            color=stroke, lw=linewidth, zorder=zorder + .1)
+            return patches
+
         try:
             # Build semantic silhouettes first; z-order keeps connectors behind them.
             shape_paths={}
@@ -944,7 +987,9 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                 has_shadow = (shape != 'group') and bool(n.get('shadow', design.get('shadow', False)))
                 if has_shadow:
                     sdx, sdy = 1.2, 1.4
-                    if shape in ('process', 'terminator', 'header'):
+                    if shape in SHAPES:
+                        scientific_patches(shape, (x+sdx,y+sdy,w,h), '#E8EEF2', 'none', 0, 1.5)
+                    elif shape in ('process', 'terminator', 'header'):
                         srad = min(h/2, 16) if shape == 'terminator' else rad
                         ax.add_patch(FancyBboxPatch((x+sdx, y+sdy), w, h, boxstyle=f'round,pad=0,rounding_size={srad}',
                                                     facecolor='#E8EEF2', edgecolor='none', zorder=1.5))
@@ -989,16 +1034,21 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                     ax.add_patch(patch)
                     cap = Ellipse((x+w/2, y+ey/2), w, ey, facecolor=fill, edgecolor=stroke, lw=line_width, zorder=3)
                     ax.add_patch(cap)
+                elif shape in SHAPES:
+                    patches = scientific_patches(shape, (x,y,w,h), fill, stroke, line_width, 2)
+                    patch = patches[-1]
                 else:
                     pts = [(x+w/2, y), (x+w, y+h/2), (x+w/2, y+h), (x, y+h/2)] if shape == 'decision' else [(x+7, y), (x+w, y), (x+w-7, y+h), (x, y+h)]
                     patch = PathPatch(plot_path(rounded_polygon(pts, min(corner, 3))), facecolor=fill, edgecolor=stroke, lw=line_width, zorder=2, joinstyle='round')
                     ax.add_patch(patch)
-                shape_paths[n['id']] = [patch.get_path()]
+                if shape in SHAPES:
+                    shape_paths[n['id']] = [p.get_path().transformed(p.get_patch_transform()) for p in patches]
+                else:
+                    shape_paths[n['id']] = [patch.get_path()]
                 if shape == 'data':
                     shape_paths[n['id']].append(cap.get_path().transformed(cap.get_patch_transform()))
 
                 if shape != 'group' and n.get('accent') in ('left', 'top'):
-                    from matplotlib.patches import Rectangle
                     accent_side = n['accent']
                     accent_c = color(n.get('accent_color', n.get('stroke_color', design.get('connector_color', '#334E68'))))
                     stripe_w = 3.0
@@ -1022,7 +1072,10 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                     tbw = max(tb.x1 - tb.x0 + 8.0, 18.0)
                     tbh = max(tb.y1 - tb.y0 + 3.0, 9.0)
                     bx_offset = 10.0 if shape in ('input', 'terminator') else 4.0
-                    bx, by = x + bx_offset, y + 3.5
+                    tx, ty, tw, th = text_box(shape, (x, y, w, h))
+                    if shape in SHAPES and (bx_offset + tbw > tw or 3.5 + tbh > th):
+                        report['errors'].append(f'Badge {n["id"]}:badge does not fit its text area')
+                    bx, by = tx + bx_offset, ty + 3.5
                     badge_pill = FancyBboxPatch((bx, by), tbw, tbh, boxstyle='round,pad=0,rounding_size=2.5',
                                                facecolor=badge_bg, edgecolor='none', zorder=3.5)
                     ax.add_patch(badge_pill)
@@ -1205,7 +1258,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                     if node['id'] in {e['from'],e['to']} or node.get('shape')=='group':continue
                     x,y,w,h=node['box']
                     nshape = node.get('shape', 'process')
-                    if nshape in ('decision', 'input') and node['id'] in shape_paths:
+                    if (nshape in ('decision', 'input') or nshape in SHAPES) and node['id'] in shape_paths:
                         node_paths = shape_paths[node['id']]
                         edge_hits_node = False
                         for a_pt, b_pt in zip(samples, samples[1:]):
@@ -1250,6 +1303,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                     report['errors'].append(f"Route {meeting['kind']} between edges {pair[0]} and {pair[1]} at {meeting['point_pt']}")
             def add_label(record, identifier, *, annotation=False):
                 x,y,w,h=record['box'];shape=record.get('shape','process');padding=record.get('padding_pt',5)
+                x,y,w,h=text_box(shape,(x,y,w,h))
                 if shape != 'group' and not annotation and ('detail' not in record or identifier == record.get('id')):
                     if record.get('accent') == 'left':
                         x += 3.5
@@ -1316,6 +1370,7 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                 report['text'].append({'id':identifier,'node_id':record.get('id'),'text':wrapped,'font_pt':size,'bounds_pt':list(b),'contrast':round(ratio,3)})
             def content_box(n):
                 x,y,w,h=n['box'];pad=n.get('padding_pt',5);shape=n.get('shape','process')
+                x,y,w,h=text_box(shape,(x,y,w,h))
                 if shape=='decision':x+=w/4;y+=h/4;w/=2;h/=2
                 left=max(pad,10 if shape=='input' else 6 if shape=='data' else pad)
                 top=max(pad,8 if shape=='data' else pad)
@@ -1407,7 +1462,8 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                         move_label(j,label_x,cursor+lh/2)
                         cursor+=lh+gap
                     continue
-                x,y,w,h=n['box'];split=n.get('title_height_pt',22 if n.get('shape')=='data' else 18)
+                x,y,w,h=text_box(n.get('shape','process'),n['box'])
+                split=n.get('title_height_pt',22 if n.get('shape')=='data' else 18)
                 if not 0 < split < h:
                     raise ValueError(f"Node {n['id']} title_height_pt must lie within its box")
                 # Measure title and body separately: local bold hierarchy without mathtext
@@ -1474,9 +1530,17 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                     node_swatch_h = 6.5
                     text_gap = 5.0
                     item_widths = []
+                    swatches = []
                     for it in items:
-                        is_line = it.get('kind') == 'edge' or it.get('shape') == 'line'
-                        sw = line_swatch_w if is_line else node_swatch_w
+                        shape = it.get('shape')
+                        is_line = it.get('kind') == 'edge' or shape == 'line'
+                        if is_line:
+                            sw, sh = line_swatch_w, node_swatch_h
+                        elif isinstance(shape, str) and shape in SHAPES:
+                            sw, sh = shape_swatch_size(shape)
+                        else:
+                            sw, sh = node_swatch_w, node_swatch_h
+                        swatches.append((sw, sh))
                         tmp_txt = ax.text(0, 0, it['label'], fontsize=leg_font_size, linespacing=1.13)
                         tb_tmp = tmp_txt.get_window_extent(measurement_renderer).transformed(ax.transData.inverted())
                         tw = abs(tb_tmp.x1 - tb_tmp.x0)
@@ -1511,8 +1575,10 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                         slot_w = slot_widths[idx]
                         scol = color(it.get('color', it.get('fill', '#334E68')))
                         s_stroke = color(it.get('stroke_color', scol))
-                        is_line = it.get('kind') == 'edge' or it.get('shape') == 'line'
-                        swatch_w = line_swatch_w if is_line else node_swatch_w
+                        shape = it.get('shape')
+                        is_line = it.get('kind') == 'edge' or shape == 'line'
+                        swatch_w, swatch_h = swatches[idx]
+                        swatch_box = (ix, iy - swatch_h / 2, swatch_w, swatch_h)
                         if is_line:
                             is_dashed = it.get('style') == 'dashed' or it.get('border_style') == 'dashed'
                             l_style = (0, (3.2, 2.0)) if is_dashed else 'solid'
@@ -1524,8 +1590,12 @@ def render_figure(spec, output_dir, stem, dpi, asset_dir, *, preview_only, drawi
                             else:
                                 ax.plot([ix, ix + swatch_w], [iy, iy], color=scol,
                                         lw=1.15, ls=l_style, zorder=2.2)
+                        elif isinstance(shape, str) and shape in SHAPES:
+                            if swatch_h > lh:
+                                report['errors'].append(f'Legend item {idx} shape overflows legend height')
+                            scientific_patches(shape, swatch_box, scol, s_stroke, .6, 2.2)
                         else:
-                            ax.add_patch(FancyBboxPatch((ix, iy - node_swatch_h / 2), swatch_w, node_swatch_h,
+                            ax.add_patch(FancyBboxPatch(swatch_box[:2], swatch_w, swatch_h,
                                                         boxstyle='round,pad=0,rounding_size=1.0',
                                                         facecolor=scol, edgecolor=s_stroke, lw=0.6, zorder=2.2))
                         lt = ax.text(ix + swatch_w + text_gap, iy, it['label'], ha='left', va='center',
@@ -1728,6 +1798,7 @@ def main():
     p.add_argument('--profile', choices=list(PROFILES.keys()), help='Check a target journal export profile')
     p.add_argument('--theme', choices=list(THEMES.keys()), help='Apply a publication theme')
     p.add_argument('--list-icons', action='store_true', help='List all available vector icons')
+    p.add_argument('--list-shapes', action='store_true', help='List native node shapes and their roles')
     p.add_argument('--require-sources', action='store_true', help='Require supplied source locators on each method node and edge')
     p.add_argument('--require-paper-figures', action='store_true',
                    help='Require distinct paper figure records (default minimum: 5)')
@@ -1735,10 +1806,16 @@ def main():
                    help='Minimum distinct paper figure records (default: 5)')
     p.add_argument('--require-design-review', action='store_true',
                    help='Require evidence-backed reader checks and a decision for each reviewed figure')
+    p.add_argument('--require-shape-review', action='store_true',
+                   help='Require shape inventories and mapped choices for the method nodes')
     args=p.parse_args()
     if args.list_icons:
         for name in list_icons():
             print(name)
+        return 0
+    if args.list_shapes:
+        for key, meaning in list_shapes().items():
+            print(f'{key}: {meaning}')
         return 0
     if not args.spec:
         p.error('the following arguments are required: spec')
@@ -1753,13 +1830,14 @@ def main():
             validate_spec(spec)
             prov = provenance(spec)
             enforce_review(prov, args.require_sources, args.require_paper_figures, args.min_paper_figures,
-                           args.require_design_review)
+                           args.require_design_review, args.require_shape_review)
             if args.layout_only:print(json.dumps(layout_metrics(spec),indent=2));return 0
             print('Specification valid. Rendering and visual review have not run.');return 0
         report=render(load,args.output_dir,args.stem,args.dpi,asset_dir=args.spec.parent, preview_only=args.preview_only,
                       drawio=args.drawio, tiff=args.tiff, profile=args.profile, require_sources=args.require_sources,
                       require_paper_figures=args.require_paper_figures, min_paper_figures=args.min_paper_figures,
-                      require_design_review=args.require_design_review, eps=args.eps, theme=args.theme)
+                      require_design_review=args.require_design_review, require_shape_review=args.require_shape_review,
+                      eps=args.eps, theme=args.theme)
         print(json.dumps({'passed_geometry_checks':report['passed_geometry_checks'],'errors':report['errors'],
                           'layout_advisories':report['layout']['advisories'],
                           'status':report['status'],'visual_review':report['visual_review'],'exports':report['exports']},indent=2))

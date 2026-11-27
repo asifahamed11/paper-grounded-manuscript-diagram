@@ -43,6 +43,11 @@ send only public topic or bibliographic queries to external services.
   precedent's observation to a specific design decision and to the panel,
   nodes, or edges where it appears. Explain precedents you omit. Draw original
   artwork and use the user's method to resolve each relationship.
+- Build a [shape inventory](references/scientific-shapes.md) for each inspected
+  figure. Record the visible form, the role it plays, and its location. Compare
+  the inventories to choose the shape for each supported object or operation.
+  Map the selected conventions to their actual nodes in `shape_choices`.
+  Explain local choices from the user's method.
 
 ## Build and review the layout
 
@@ -59,13 +64,16 @@ send only public topic or bibliographic queries to external services.
 - Use [design conventions](references/diagram-conventions.md) and
   [print styling](references/design-system.md) for the chosen figure. Use
   shape, grouping, annotation, or line style when it conveys information.
+  Use `--list-shapes` to discover native shapes for feature stacks, matrices,
+  operators, documents, external actors, states, and timeline events.
   Keep illustrations and icons limited to those that help identify a real
   component. [Icon preparation](references/icon-workflow.md) is optional.
 
 ## Verify and deliver
 
 - For a new figure with supplied study evidence, include `design_review` and
-  run `--require-sources --require-design-review`. When an applicable
+  run `--require-sources --require-design-review --require-shape-review`.
+  When an applicable
   minimum of inspected published examples is met, add
   `--require-paper-figures --min-paper-figures N`. If access falls short,
   preserve the real records, report the shortfall and use the applicable checks.
@@ -76,4 +84,5 @@ send only public topic or bibliographic queries to external services.
 - Deliver the editable source and the formats the user or venue requires.
   The local tools produce SVG, PDF and PNG, with optional Draw.io, EPS or TIFF.
   Check any separately requested editable export in its intended viewer if
-  available. See the [output guide](references/output-specification.md).
+  available. For a shape review, summarize the observed forms per figure and
+  which nodes adopted them. See the [output guide](references/output-specification.md).

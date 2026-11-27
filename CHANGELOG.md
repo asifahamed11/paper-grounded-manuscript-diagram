@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added seven role-based shapes with measured labels, contour-aware connectors, and editable Draw.io stencils.
+- Added per-figure shape inventories and checked placement mappings, with a five-paper multiscale example.
 - Added figure-type planning, traceable reader checks, and a sourced multiscale example.
 - Deduplicate paper identities and separate study evidence from visual precedents.
 - Use a topic-aware shortlist across providers and index figure-like PDF captions.

@@ -1,9 +1,9 @@
 {
   "title": "Multiscale paired encoder and decoder",
-  "description": "Synthetic layout example. Panel A gives the model overview. Panel B shows every scale and decoder skip.",
+  "description": "Synthetic four-level method with shape conventions drawn from five inspected published figures. Panel A gives the overview. Panel B shows each paired feature tensor, comparison, and decoder skip.",
   "canvas": {
     "width_pt": 457.2,
-    "height_pt": 350,
+    "height_pt": 368,
     "font_family": "DejaVu Sans",
     "font_pt": 9.2,
     "min_font_pt": 8.5
@@ -19,6 +19,71 @@
       "kind": "method",
       "title": "Synthetic four-level method",
       "locator": "references/figure-planning.md, Synthetic method for the multiscale template"
+    },
+    {
+      "id": "changeformer",
+      "kind": "figure",
+      "title": "A Transformer-Based Siamese Network for Change Detection",
+      "doi": "10.1109/IGARSS46834.2022.9883686",
+      "url": "https://arxiv.org/pdf/2201.01293",
+      "locator": "Fig. 1, author PDF p. 2",
+      "takeaway": "Feature maps are visible between repeated encoder stages and comparison modules.",
+      "inspection": {
+        "location": "Fig. 1, author PDF p. 2",
+        "publication": "published"
+      }
+    },
+    {
+      "id": "bit",
+      "kind": "figure",
+      "title": "Remote Sensing Image Change Detection with Transformers",
+      "doi": "10.1109/TGRS.2021.3095166",
+      "url": "https://arxiv.org/pdf/2103.00208",
+      "locator": "Fig. 2, author PDF p. 3",
+      "takeaway": "The circled subtraction sign identifies the comparison before prediction.",
+      "inspection": {
+        "location": "Fig. 2, author PDF p. 3",
+        "publication": "published"
+      }
+    },
+    {
+      "id": "dasnet",
+      "kind": "figure",
+      "title": "DASNet: Dual Attentive Fully Convolutional Siamese Networks for Change Detection in High-Resolution Satellite Images",
+      "doi": "10.1109/JSTARS.2020.3037893",
+      "url": "https://arxiv.org/pdf/2003.03608",
+      "locator": "Fig. 1, author PDF p. 3",
+      "takeaway": "Offset plates and cuboids distinguish feature-bearing representations from the routing and algebra.",
+      "inspection": {
+        "location": "Fig. 1, author PDF p. 3",
+        "publication": "published"
+      }
+    },
+    {
+      "id": "fcsiam",
+      "kind": "figure",
+      "title": "Fully Convolutional Siamese Networks for Change Detection",
+      "doi": "10.1109/ICIP.2018.8451652",
+      "url": "https://arxiv.org/pdf/1810.08462",
+      "locator": "Fig. 1(a-c), author PDF p. 2",
+      "takeaway": "A small difference symbol and skip route are repeated at corresponding encoder levels.",
+      "inspection": {
+        "location": "Fig. 1(a-c), author PDF p. 2",
+        "publication": "published"
+      }
+    },
+    {
+      "id": "stanet",
+      "kind": "figure",
+      "title": "A Spatial-Temporal Attention-Based Method and a New Dataset for Remote Sensing Image Change Detection",
+      "doi": "10.3390/rs12101662",
+      "url": "https://www.mdpi.com/2072-4292/12/10/1662",
+      "locator": "Fig. 2(a-d), publisher PDF p. 6",
+      "takeaway": "Offset planes distinguish feature maps and labeled rectangles identify modules.",
+      "inspection": {
+        "location": "Fig. 2(a-d), publisher PDF p. 6",
+        "publication": "published"
+      }
     }
   ],
   "nodes": [
@@ -42,9 +107,9 @@
         8,
         104,
         441,
-        238
+        256
       ],
-      "label": "(b) Scale-wise comparison and decoding",
+      "label": "(b) Scale-wise decoding with Δ = |A − B|",
       "label_height_pt": 22,
       "container_fill": "#f8fafc"
     },
@@ -113,11 +178,11 @@
       "label": "Level 4 pair",
       "box": [
         19,
-        136,
+        131,
         120,
-        32
+        42
       ],
-      "shape": "input",
+      "shape": "tensor",
       "source_refs": [
         "fixture-method"
       ],
@@ -125,19 +190,20 @@
     },
     {
       "id": "difference-4",
-      "label": "Absolute difference",
+      "label": "Δ",
       "box": [
-        159,
-        136,
-        122,
-        32
+        203,
+        135,
+        34,
+        34
       ],
-      "shape": "process",
+      "shape": "operator",
       "source_refs": [
         "fixture-method"
       ],
-      "detail": "Level 4",
-      "fill": "#fff4de"
+      "fill": "#fff4de",
+      "bold": true,
+      "font_pt": 11
     },
     {
       "id": "decoder-4",
@@ -160,11 +226,11 @@
       "label": "Level 3 pair",
       "box": [
         19,
-        178,
+        179,
         120,
-        32
+        42
       ],
-      "shape": "input",
+      "shape": "tensor",
       "source_refs": [
         "fixture-method"
       ],
@@ -172,26 +238,27 @@
     },
     {
       "id": "difference-3",
-      "label": "Absolute difference",
+      "label": "Δ",
       "box": [
-        159,
-        178,
-        122,
-        32
+        203,
+        183,
+        34,
+        34
       ],
-      "shape": "process",
+      "shape": "operator",
       "source_refs": [
         "fixture-method"
       ],
-      "detail": "Level 3",
-      "fill": "#fff4de"
+      "fill": "#fff4de",
+      "bold": true,
+      "font_pt": 11
     },
     {
       "id": "decoder-3",
       "label": "Fuse level 3",
       "box": [
         302,
-        178,
+        184,
         132,
         32
       ],
@@ -207,11 +274,11 @@
       "label": "Level 2 pair",
       "box": [
         19,
-        220,
+        227,
         120,
-        32
+        42
       ],
-      "shape": "input",
+      "shape": "tensor",
       "source_refs": [
         "fixture-method"
       ],
@@ -219,26 +286,27 @@
     },
     {
       "id": "difference-2",
-      "label": "Absolute difference",
+      "label": "Δ",
       "box": [
-        159,
-        220,
-        122,
-        32
+        203,
+        231,
+        34,
+        34
       ],
-      "shape": "process",
+      "shape": "operator",
       "source_refs": [
         "fixture-method"
       ],
-      "detail": "Level 2",
-      "fill": "#fff4de"
+      "fill": "#fff4de",
+      "bold": true,
+      "font_pt": 11
     },
     {
       "id": "decoder-2",
       "label": "Fuse level 2",
       "box": [
         302,
-        220,
+        232,
         132,
         32
       ],
@@ -254,11 +322,11 @@
       "label": "Level 1 pair",
       "box": [
         19,
-        262,
+        275,
         120,
-        32
+        42
       ],
-      "shape": "input",
+      "shape": "tensor",
       "source_refs": [
         "fixture-method"
       ],
@@ -266,26 +334,27 @@
     },
     {
       "id": "difference-1",
-      "label": "Absolute difference",
+      "label": "Δ",
       "box": [
-        159,
-        262,
-        122,
-        32
+        203,
+        279,
+        34,
+        34
       ],
-      "shape": "process",
+      "shape": "operator",
       "source_refs": [
         "fixture-method"
       ],
-      "detail": "Level 1",
-      "fill": "#fff4de"
+      "fill": "#fff4de",
+      "bold": true,
+      "font_pt": 11
     },
     {
       "id": "decoder-1",
       "label": "Fuse level 1",
       "box": [
         302,
-        262,
+        280,
         132,
         32
       ],
@@ -301,7 +370,7 @@
       "label": "Change logits",
       "box": [
         302,
-        306,
+        324,
         132,
         26
       ],
@@ -376,7 +445,7 @@
           152
         ],
         [
-          159,
+          203,
           152
         ]
       ],
@@ -390,7 +459,7 @@
       "to": "decoder-4",
       "points": [
         [
-          281,
+          237,
           152
         ],
         [
@@ -409,11 +478,11 @@
       "points": [
         [
           139,
-          194
+          200
         ],
         [
-          159,
-          194
+          203,
+          200
         ]
       ],
       "source_refs": [
@@ -426,12 +495,12 @@
       "to": "decoder-3",
       "points": [
         [
-          281,
-          194
+          237,
+          200
         ],
         [
           302,
-          194
+          200
         ]
       ],
       "source_refs": [
@@ -449,7 +518,7 @@
         ],
         [
           368,
-          178
+          184
         ]
       ],
       "source_refs": [
@@ -463,11 +532,11 @@
       "points": [
         [
           139,
-          236
+          248
         ],
         [
-          159,
-          236
+          203,
+          248
         ]
       ],
       "source_refs": [
@@ -480,12 +549,12 @@
       "to": "decoder-2",
       "points": [
         [
-          281,
-          236
+          237,
+          248
         ],
         [
           302,
-          236
+          248
         ]
       ],
       "source_refs": [
@@ -499,11 +568,11 @@
       "points": [
         [
           368,
-          210
+          216
         ],
         [
           368,
-          220
+          232
         ]
       ],
       "source_refs": [
@@ -517,11 +586,11 @@
       "points": [
         [
           139,
-          278
+          296
         ],
         [
-          159,
-          278
+          203,
+          296
         ]
       ],
       "source_refs": [
@@ -534,12 +603,12 @@
       "to": "decoder-1",
       "points": [
         [
-          281,
-          278
+          237,
+          296
         ],
         [
           302,
-          278
+          296
         ]
       ],
       "source_refs": [
@@ -553,11 +622,11 @@
       "points": [
         [
           368,
-          252
+          264
         ],
         [
           368,
-          262
+          280
         ]
       ],
       "source_refs": [
@@ -571,11 +640,11 @@
       "points": [
         [
           368,
-          294
+          312
         ],
         [
           368,
-          306
+          324
         ]
       ],
       "source_refs": [
@@ -620,6 +689,338 @@
         ]
       }
     ],
-    "precedents": []
+    "precedents": [
+      {
+        "source": "changeformer",
+        "observation": "Feature maps are visible between repeated encoder stages and comparison modules.",
+        "decision": "Make the paired scale inputs visible before each comparison.",
+        "elements": [
+          "nodes:pair-4",
+          "edges:pair-4-to-difference-4"
+        ],
+        "shapes": [
+          {
+            "id": "image-tiles",
+            "form": "Square image tiles",
+            "role": "Pre-change and post-change inputs and binary change map",
+            "location": "Fig. 1, far left and far right"
+          },
+          {
+            "id": "feature-planes",
+            "form": "Narrow image-like strips between stages",
+            "role": "Intermediate feature maps at encoder and decoder levels",
+            "location": "Fig. 1, both encoder streams and decoder"
+          },
+          {
+            "id": "modules",
+            "form": "Labeled rectangular blocks",
+            "role": "Downsampling, Transformer, difference and decoder stages",
+            "location": "Fig. 1, encoder, center comparison, and decoder"
+          },
+          {
+            "id": "circled-sum",
+            "form": "Circle with plus sign",
+            "role": "Residual sum in the Transformer block",
+            "location": "Fig. 1, detailed upper-right inset"
+          },
+          {
+            "id": "regions",
+            "form": "Dashed section borders and shaded detail insets",
+            "role": "Stage boundaries and enlarged internal operations",
+            "location": "Fig. 1, encoder and decoder overview and right insets"
+          }
+        ]
+      },
+      {
+        "source": "bit",
+        "observation": "The circled subtraction sign identifies the comparison before prediction.",
+        "decision": "Place a compact comparison glyph between each paired tensor and decoder input.",
+        "elements": [
+          "nodes:difference-4",
+          "edges:difference-4-to-decoder-4"
+        ],
+        "shapes": [
+          {
+            "id": "image-tiles",
+            "form": "Rectangular imagery and mask tiles",
+            "role": "Paired image inputs and predicted change map",
+            "location": "Fig. 2, far left and far right"
+          },
+          {
+            "id": "feature-cuboids",
+            "form": "Cuboids with tiled faces",
+            "role": "Image features before tokenization and refined features after decoding",
+            "location": "Fig. 2, CNN backbone and prediction head"
+          },
+          {
+            "id": "token-volumes",
+            "form": "Groups of slim rectangular prisms",
+            "role": "Sets of semantic and context-rich tokens",
+            "location": "Fig. 2, between tokenizer, encoder, and decoder"
+          },
+          {
+            "id": "token-cells",
+            "form": "Rows of small outlined cells",
+            "role": "Flattened image-feature sequences used in the decoder",
+            "location": "Fig. 2, above and below the Transformer decoders"
+          },
+          {
+            "id": "modules",
+            "form": "Labeled rectangles",
+            "role": "Tokenizer, encoder, decoder and convolution stages",
+            "location": "Fig. 2, all three stages"
+          },
+          {
+            "id": "circled-difference",
+            "form": "Circle containing a minus sign",
+            "role": "Subtraction and absolute value before convolution",
+            "location": "Fig. 2, prediction head between the two refined features"
+          },
+          {
+            "id": "regions",
+            "form": "Dashed rectangular partitions",
+            "role": "Backbone, bitemporal Transformer, and prediction head",
+            "location": "Fig. 2, three main sections"
+          }
+        ]
+      },
+      {
+        "source": "dasnet",
+        "observation": "Offset plates and cuboids distinguish feature-bearing representations from the routing and algebra.",
+        "decision": "Use original offset planes for paired feature nodes.",
+        "elements": [
+          "nodes:pair-4",
+          "nodes:pair-3",
+          "nodes:pair-2",
+          "nodes:pair-1"
+        ],
+        "shapes": [
+          {
+            "id": "image-tiles",
+            "form": "Rectangular input tiles and black-and-white output tile",
+            "role": "Paired observations and distance map",
+            "location": "Fig. 1, left and right ends"
+          },
+          {
+            "id": "feature-plates",
+            "form": "Stacks of offset plates and colored cuboids",
+            "role": "Parallel Siamese convolution stages and learned feature pair",
+            "location": "Fig. 1, Siam-Conv and feature-pair blocks"
+          },
+          {
+            "id": "attention-grid",
+            "form": "Small checkerboard grids",
+            "role": "Spatial or channel attention matrices",
+            "location": "Fig. 1, dual attention blocks and legend"
+          },
+          {
+            "id": "algebra-circles",
+            "form": "Circled multiplication or plus signs",
+            "role": "Matrix multiplication and element-wise sum",
+            "location": "Fig. 1, dual attention blocks and legend"
+          },
+          {
+            "id": "pair-markers",
+            "form": "Colored C and U circles beside thin bars",
+            "role": "Changed and unchanged pairs compared in learned feature space",
+            "location": "Fig. 1, metric block and legend"
+          },
+          {
+            "id": "upsampling",
+            "form": "Outline triangle",
+            "role": "Bilateral upsampling",
+            "location": "Fig. 1, before the distance map and in the legend"
+          },
+          {
+            "id": "regions",
+            "form": "Dashed rounded outlines",
+            "role": "Grouped Siamese and attention stages",
+            "location": "Fig. 1, main pipeline"
+          }
+        ]
+      },
+      {
+        "source": "fcsiam",
+        "observation": "A small difference symbol and skip route are repeated at corresponding encoder levels.",
+        "decision": "Repeat the same shape for the absolute difference and draw all four decoder inputs.",
+        "elements": [
+          "edges:difference-4-to-decoder-4",
+          "edges:difference-3-to-decoder-3",
+          "edges:difference-2-to-decoder-2",
+          "edges:difference-1-to-decoder-1"
+        ],
+        "shapes": [
+          {
+            "id": "pyramids",
+            "form": "Tapered trapezoid silhouettes",
+            "role": "Encoder and decoder resolution hierarchy",
+            "location": "Fig. 1(a-c), behind layer bars"
+          },
+          {
+            "id": "layer-bars",
+            "form": "Filled rectangular strips",
+            "role": "Convolutions, pooling, concatenation, and transposed convolutions",
+            "location": "Fig. 1(a-c), successive layer rows"
+          },
+          {
+            "id": "circled-difference",
+            "form": "Small circles containing a minus sign",
+            "role": "Matched-level difference feeding decoder skips",
+            "location": "Fig. 1(c), between the two encoders and the left decoder"
+          }
+        ]
+      },
+      {
+        "source": "stanet",
+        "observation": "Offset planes distinguish feature maps and labeled rectangles identify modules.",
+        "decision": "Draw the encoder as a named stage and represent the emitted pairs as stacks in the detail panel.",
+        "elements": [
+          "nodes:encoder",
+          "nodes:pair-4",
+          "nodes:pair-3",
+          "nodes:pair-2",
+          "nodes:pair-1"
+        ],
+        "shapes": [
+          {
+            "id": "image-tiles",
+            "form": "Rectangular imagery and mask tiles",
+            "role": "Paired inputs and change map output",
+            "location": "Fig. 2(a), left and right ends"
+          },
+          {
+            "id": "feature-stacks",
+            "form": "Stacks of offset rectangular planes",
+            "role": "Extracted, contextual, and intermediate feature maps",
+            "location": "Fig. 2(a), before and after attention, and Fig. 2(c-d)"
+          },
+          {
+            "id": "module-boxes",
+            "form": "Labeled rectangles",
+            "role": "Feature extractor, attention, metric, and component stages",
+            "location": "Fig. 2(a-d), named process modules"
+          },
+          {
+            "id": "grid-matrices",
+            "form": "Gridded rectangular planes",
+            "role": "Reshaped attention matrices and pyramid partitions",
+            "location": "Fig. 2(c-d), BAM and PAM details"
+          },
+          {
+            "id": "algebra-circles",
+            "form": "Small circled multiply and plus signs",
+            "role": "Matrix products and residual addition",
+            "location": "Fig. 2(c-d), attention computation"
+          },
+          {
+            "id": "regions",
+            "form": "Dashed frames and callout links",
+            "role": "Feature-extractor and attention-module details",
+            "location": "Fig. 2(a-d), panel handoffs"
+          }
+        ]
+      }
+    ],
+    "shape_choices": [
+      {
+        "shape": "input",
+        "nodes": [
+          "inputs"
+        ],
+        "reason": "The overview starts with a supplied pair of epoch inputs. An input symbol identifies their role at the handoff.",
+        "from_shapes": []
+      },
+      {
+        "shape": "process",
+        "nodes": [
+          "encoder",
+          "levels",
+          "comparison"
+        ],
+        "reason": "The overview names the three stages the reader must follow.",
+        "from_shapes": [
+          {
+            "source": "changeformer",
+            "shape": "modules"
+          },
+          {
+            "source": "stanet",
+            "shape": "module-boxes"
+          }
+        ]
+      },
+      {
+        "shape": "tensor",
+        "nodes": [
+          "pair-4",
+          "pair-3",
+          "pair-2",
+          "pair-1"
+        ],
+        "reason": "Offset planes distinguish the two matched feature inputs from comparison and decoding. The level names come from the synthetic method.",
+        "from_shapes": [
+          {
+            "source": "changeformer",
+            "shape": "feature-planes"
+          },
+          {
+            "source": "dasnet",
+            "shape": "feature-plates"
+          },
+          {
+            "source": "stanet",
+            "shape": "feature-stacks"
+          }
+        ]
+      },
+      {
+        "shape": "operator",
+        "nodes": [
+          "difference-4",
+          "difference-3",
+          "difference-2",
+          "difference-1"
+        ],
+        "reason": "The delta glyph marks the same absolute difference at each level. The panel title defines the operation used by this method.",
+        "from_shapes": [
+          {
+            "source": "bit",
+            "shape": "circled-difference"
+          },
+          {
+            "source": "fcsiam",
+            "shape": "circled-difference"
+          }
+        ]
+      },
+      {
+        "shape": "process",
+        "nodes": [
+          "decoder-4",
+          "decoder-3",
+          "decoder-2",
+          "decoder-1"
+        ],
+        "reason": "Labeled decoder stages show the entry at the deepest level and the successive upsample-and-merge stages.",
+        "from_shapes": [
+          {
+            "source": "changeformer",
+            "shape": "modules"
+          },
+          {
+            "source": "fcsiam",
+            "shape": "layer-bars"
+          }
+        ]
+      },
+      {
+        "shape": "terminator",
+        "nodes": [
+          "logits"
+        ],
+        "reason": "The terminal shape marks the change logits at the end of the synthetic pipeline.",
+        "from_shapes": []
+      }
+    ]
   }
 }

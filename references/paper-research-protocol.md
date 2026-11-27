@@ -66,7 +66,9 @@ and keep preprints separate from the published-paper count.
 Use the full-page render, its candidate caption index, and the adjacent text.
 The index is a navigation aid. Figures drawn as vectors can appear on a page
 with zero embedded raster images. Read the selected figure at a readable scale,
-then record the exact figure number and viewing location.
+then record the exact figure number and viewing location. Inventory the visible
+shapes and what they represent using the [figure template](figure-analysis-template.md).
+Compare the roles across papers before selecting shapes for the user's method.
 
 ```sh
 python scripts/extract_pdf_figures.py paper.pdf --output-dir reviewed-paper --pages-only

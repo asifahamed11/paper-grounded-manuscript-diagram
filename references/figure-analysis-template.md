@@ -37,7 +37,7 @@ how it applies to the user's figure.
 
 - Layout topology & reading direction:
 - Grouping & containers:
-- Shapes & notation:
+- Domain symbols and their role in this figure:
 - Information density:
 - Typography & approximate hierarchy:
 - Color roles:
@@ -46,6 +46,15 @@ how it applies to the user's figure.
 - Spacing and alignment:
 - Legend / annotations:
 - Density and readability:
+
+## Shape inventory
+
+Record one row per distinct form and role. Add rows as needed and group repeats.
+Use the caption, nearby text and legend to confirm what each form represents.
+
+| Observation ID | Visible form | Role in the source figure | Exact panel or location |
+| --- | --- | --- | --- |
+| | | | |
 
 ## Strengths to adopt & takeaways
 
@@ -75,6 +84,10 @@ Explain which general conventions will be adopted, which will be changed, and wh
   `inspection.publication` (`published`, `preprint`, or `unverified`).
 - In `design_review.precedents`, record the source ID, observation, decision,
   and final element IDs (e.g. `edges:scale-to-decoder`). For an omitted
-  convention, use `omission_reason`.
+  convention, use `omission_reason`. Store the inventory as `shapes` on the
+  same record. Each item has `id`, `form`, `role`, and `location`.
+- In `design_review.shape_choices`, name the target nodes, chosen shape,
+  evidence-backed reason, and any inventory references in `from_shapes`.
+  Use the [shape workflow](scientific-shapes.md) to compare and select forms.
 - In `design_review.checks`, map the intended reader checks to study-backed
   elements. Inspect the render to verify that each mapping is visible.

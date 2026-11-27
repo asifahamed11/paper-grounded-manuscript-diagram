@@ -189,8 +189,13 @@ with the provenance receipt `demo/method-qa.json`. For a reproducible
 render the synthetic four-scale example:
 
 ```sh
-python scripts/render_diagram.py templates/multiscale-architecture.json --output-dir demo --stem multiscale --require-sources --require-design-review
+python scripts/render_diagram.py templates/multiscale-architecture.json --output-dir demo --stem multiscale --drawio --require-sources --require-paper-figures --require-shape-review
 ```
+
+The [shape guide](references/scientific-shapes.md) explains how to inventory the
+shapes in each inspected paper figure, then map the conventions to study-backed
+nodes. It includes a [second example](templates/scientific-shapes.json) covering
+all seven additional shapes in a comparison pipeline and system handoff.
 
 ---
 

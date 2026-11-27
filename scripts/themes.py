@@ -4,6 +4,15 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict
 
+try:
+    from .node_shapes import palette_role
+except ImportError:
+    try:
+        from scripts.node_shapes import palette_role
+    except ImportError:
+        from node_shapes import palette_role
+
+
 THEMES: Dict[str, Dict[str, Any]] = {
     'okabe-ito': {
         'name': 'okabe-ito',
@@ -217,6 +226,8 @@ def apply_theme(spec: dict) -> dict:
             if not isinstance(node, dict):
                 continue
             shape = node.get('shape', 'process')
+            if not isinstance(shape, str):
+                continue
             if shape == 'group':
                 if 'container_fill' not in node and 'container_fill' in theme:
                     node['container_fill'] = theme['container_fill']
@@ -225,10 +236,11 @@ def apply_theme(spec: dict) -> dict:
                 if 'text_color' not in node and 'text_color' in theme:
                     node['text_color'] = theme['text_color']
             else:
-                if 'fill' not in node and shape in theme.get('fills', {}):
-                    node['fill'] = theme['fills'][shape]
-                if 'stroke_color' not in node and shape in theme.get('strokes', {}):
-                    node['stroke_color'] = theme['strokes'][shape]
+                role = palette_role(shape)
+                if 'fill' not in node and role in theme.get('fills', {}):
+                    node['fill'] = theme['fills'][role]
+                if 'stroke_color' not in node and role in theme.get('strokes', {}):
+                    node['stroke_color'] = theme['strokes'][role]
                 if 'text_color' not in node:
                     if shape == 'header':
                         node['text_color'] = theme.get('header_text_color', '#FFFFFF')

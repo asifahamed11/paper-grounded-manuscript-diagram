@@ -49,6 +49,9 @@ For a new design, answer the reader checks from the rendered figure at its
 intended physical width. Trace each required relation from its source through
 the visible edge or panel handoff, and check the actual study evidence.
 Compare the final composition with the adopted conventions in the review record.
+Trace important node shapes to the per-figure inventories and relevant study
+roles. Check that each form remains recognizable in the print-size export.
+[Shape selection and placement](scientific-shapes.md)
 
 ### Literature grounding
 

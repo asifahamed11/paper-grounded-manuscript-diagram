@@ -1,0 +1,397 @@
+{
+  "title": "Paired imagery comparison and review handoff",
+  "description": "Synthetic method. Panel A compares encoded imagery tokens. Panel B shows the checklist handoff and review state.",
+  "canvas": {
+    "width_pt": 457.2,
+    "height_pt": 245,
+    "font_family": "DejaVu Sans",
+    "font_pt": 9.2,
+    "min_font_pt": 8.5
+  },
+  "style": {
+    "theme": "okabe-ito",
+    "detail_font_pt": 8.5,
+    "title_detail_gap_pt": 2.2
+  },
+  "sources": [
+    {
+      "id": "example-method",
+      "kind": "method",
+      "title": "Synthetic imagery review method",
+      "locator": "references/scientific-shapes.md, Method for the example"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "comparison-panel",
+      "shape": "group",
+      "box": [
+        8,
+        8,
+        441,
+        105
+      ],
+      "label": "(a) Paired feature comparison, Δ = |A − B|",
+      "label_height_pt": 24,
+      "container_fill": "#f8fafc"
+    },
+    {
+      "id": "review-boundary",
+      "shape": "group",
+      "box": [
+        130,
+        149,
+        319,
+        88
+      ],
+      "label": "Internal review system",
+      "label_height_pt": 24,
+      "container_fill": "#f8fafc",
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "tokens",
+      "shape": "grid",
+      "label": "Epoch tokens",
+      "box": [
+        20,
+        48,
+        103,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "detail": "A and B"
+    },
+    {
+      "id": "features",
+      "shape": "tensor",
+      "label": "Encoded pair",
+      "box": [
+        145,
+        48,
+        110,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "detail": "Shared encoder"
+    },
+    {
+      "id": "comparison",
+      "shape": "operator",
+      "label": "Δ",
+      "box": [
+        275,
+        51,
+        38,
+        38
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true,
+      "font_pt": 12
+    },
+    {
+      "id": "contrast-grid",
+      "shape": "grid",
+      "label": "Token contrasts",
+      "box": [
+        333,
+        48,
+        104,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true
+    },
+    {
+      "id": "steward",
+      "shape": "external",
+      "label": "Data steward",
+      "box": [
+        20,
+        180,
+        98,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true
+    },
+    {
+      "id": "checklist",
+      "shape": "document",
+      "label": "QA checklist",
+      "box": [
+        141,
+        180,
+        88,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true
+    },
+    {
+      "id": "opened",
+      "shape": "event",
+      "label": "Review opened",
+      "box": [
+        246,
+        180,
+        88,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true
+    },
+    {
+      "id": "state",
+      "shape": "state",
+      "label": "In review",
+      "box": [
+        350,
+        180,
+        87,
+        44
+      ],
+      "source_refs": [
+        "example-method"
+      ],
+      "bold": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "encode",
+      "from": "tokens",
+      "to": "features",
+      "points": [
+        [
+          123,
+          70
+        ],
+        [
+          145,
+          70
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "compare",
+      "from": "features",
+      "to": "comparison",
+      "points": [
+        [
+          255,
+          70
+        ],
+        [
+          275,
+          70
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "contrast",
+      "from": "comparison",
+      "to": "contrast-grid",
+      "points": [
+        [
+          313,
+          70
+        ],
+        [
+          333,
+          70
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "submit",
+      "from": "steward",
+      "to": "checklist",
+      "points": [
+        [
+          118,
+          202
+        ],
+        [
+          141,
+          202
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "trigger",
+      "from": "checklist",
+      "to": "opened",
+      "points": [
+        [
+          229,
+          202
+        ],
+        [
+          246,
+          202
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    },
+    {
+      "id": "transition",
+      "from": "opened",
+      "to": "state",
+      "points": [
+        [
+          334,
+          202
+        ],
+        [
+          350,
+          202
+        ]
+      ],
+      "source_refs": [
+        "example-method"
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "box": [
+        12,
+        123,
+        200,
+        19
+      ],
+      "label": "(b) Review handoff",
+      "align": "left",
+      "bold": true
+    }
+  ],
+  "design_review": {
+    "reader_question": "How are paired tokens compared, and what marks the transition into review?",
+    "checks": [
+      {
+        "question": "Which component holds paired encoded features?",
+        "elements": [
+          "nodes:features"
+        ]
+      },
+      {
+        "question": "What operation produces the token contrasts?",
+        "relationship": true,
+        "elements": [
+          "nodes:comparison",
+          "edges:compare",
+          "edges:contrast"
+        ]
+      },
+      {
+        "question": "Who supplies the checklist across the review system boundary?",
+        "relationship": true,
+        "elements": [
+          "nodes:steward",
+          "nodes:review-boundary",
+          "edges:submit"
+        ]
+      },
+      {
+        "question": "Which event puts the checklist in review?",
+        "relationship": true,
+        "elements": [
+          "nodes:opened",
+          "nodes:state",
+          "edges:transition"
+        ]
+      }
+    ],
+    "precedents": [],
+    "shape_choices": [
+      {
+        "shape": "grid",
+        "nodes": [
+          "tokens",
+          "contrast-grid"
+        ],
+        "reason": "A schematic grid identifies paired tokens and their matched contrast representation.",
+        "from_shapes": []
+      },
+      {
+        "shape": "tensor",
+        "nodes": [
+          "features"
+        ],
+        "reason": "Offset feature planes identify paired outputs from the shared encoder.",
+        "from_shapes": []
+      },
+      {
+        "shape": "operator",
+        "nodes": [
+          "comparison"
+        ],
+        "reason": "The delta glyph marks the absolute difference defined in the comparison panel title.",
+        "from_shapes": []
+      },
+      {
+        "shape": "external",
+        "nodes": [
+          "steward"
+        ],
+        "reason": "The steward supplies a document from outside the internal review boundary.",
+        "from_shapes": []
+      },
+      {
+        "shape": "document",
+        "nodes": [
+          "checklist"
+        ],
+        "reason": "The folded page marks the checklist delivered at the handoff.",
+        "from_shapes": []
+      },
+      {
+        "shape": "event",
+        "nodes": [
+          "opened"
+        ],
+        "reason": "The event marker identifies the moment the review is opened.",
+        "from_shapes": []
+      },
+      {
+        "shape": "state",
+        "nodes": [
+          "state"
+        ],
+        "reason": "The ellipse identifies the persistent state entered after the event.",
+        "from_shapes": []
+      }
+    ]
+  }
+}
